@@ -5,7 +5,7 @@
     <TargetFrameworks>net452</TargetFrameworks>
 	<TargetPlatformVersion>8.0</TargetPlatformVersion>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-	<Version>0.12</Version>
+	<Version>0.13</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net452|AnyCPU'">
@@ -25,5 +25,11 @@
       <HintPath>ref\Windows.winmd</HintPath>
       <IsWinMDFile>true</IsWinMDFile>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="inis\default.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

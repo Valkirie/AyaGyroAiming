@@ -19,7 +19,9 @@ namespace AyaGyroAiming
         int rate;
 
         public IXbox360Controller vcontroller;
-        public Vector3 gyroscope;
+        public XInputGirometer gyrometer;
+
+        public Vector3 gyroreading;
         public UserIndex index;
         public bool connected = false;
 
@@ -30,23 +32,28 @@ namespace AyaGyroAiming
             rate = _rate;
 
             connected = controller.IsConnected;
-            gyroscope = new Vector3();
+            gyroreading = new Vector3();
 
             Thread UpdateThread = new Thread(Update);
             UpdateThread.Start();
         }
 
-        public void SetVirtualController(IXbox360Controller VirtualController)
+        public void SetVirtualController(IXbox360Controller _vcontroller)
         {
-            vcontroller = VirtualController;
+            vcontroller = _vcontroller;
         }
 
-        public void UpdateGyro(Vector3 gyro)
+        public void SetGyroscope(XInputGirometer _gyrometer)
         {
-            // don't ask...
-            gyroscope.X = gyro.Y;
-            gyroscope.Y = gyro.X;
-            gyroscope.Z = gyro.Z;
+            gyrometer = _gyrometer;
+            gyrometer.ReadingChanged += Girometer_ReadingChanged;
+        }
+
+        private void Girometer_ReadingChanged(object sender, XInputGirometerReadingChangedEventArgs e)
+        {
+            gyroreading.X = e.AngularStickX;
+            gyroreading.Y = e.AngularStickY;
+            gyroreading.Z = e.AngularStickZ;
         }
 
         void Update()
@@ -58,8 +65,8 @@ namespace AyaGyroAiming
                 // push the values
                 if (vcontroller != null)
                 {
-                    short ThumbX = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbX + gyroscope.X));
-                    short ThumbY = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbY + gyroscope.Y));
+                    short ThumbX = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbX + gyroreading.X));
+                    short ThumbY = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbY + gyroreading.Y));
 
                     vcontroller.SetAxisValue(Xbox360Axis.LeftThumbX, gamepad.LeftThumbX);
                     vcontroller.SetAxisValue(Xbox360Axis.LeftThumbY, gamepad.LeftThumbY);
@@ -89,8 +96,6 @@ namespace AyaGyroAiming
                     vcontroller.SetButtonState(Xbox360Button.Start, gamepad.Buttons.HasFlag(GamepadButtonFlags.Start));
                     vcontroller.SetButtonState(Xbox360Button.Back, gamepad.Buttons.HasFlag(GamepadButtonFlags.Back));
                 }
-
-                UpdateGyro(new Vector3(0, 0, 0));
 
                 Thread.Sleep(rate);
             }

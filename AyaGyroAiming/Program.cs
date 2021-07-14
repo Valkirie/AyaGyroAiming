@@ -35,28 +35,11 @@ namespace AyaGyroAiming
         [DllImport("user32.dll")]
         static extern int GetWindowText(int hWnd, StringBuilder text, int count);
 
-        private static Gyrometer CurrentGyrometer;
         private static IXbox360Controller VirtualXBOX;
+        private static XInputGirometer Girometer;
 
-        static CultureInfo CurrentCulture;
         static ConsoleEventDelegate CurrentHandler;
         static int CurrenthWnd;
-
-        static uint GyroCursor;
-        static Vector3[] GyroVectors;
-
-        // Settings
-        static float GyroStickAlpha = 0.2f;
-        static float GyroStickSensitivityX = 25.0f;
-        static float GyroStickSensitivityY = 25.0f;
-        static float GyroStickSensitivityZ = 25.0f;
-        static float GyroStickAgressivity = 0.55f;
-        static uint GyroMaxSample = 4;
-        static bool GyroStickInvertAxisX = false;
-        static bool GyroStickInvertAxisY = false;
-        static bool GyroStickInvertAxisZ = false;
-        static bool EnableGyroscope = true;
-        static bool EnableAccelerometer = false; // not implemented
 
         static bool IsRunning = true;
         static string CurrentPath, CurrentPathIni;
@@ -71,7 +54,6 @@ namespace AyaGyroAiming
             // settings
             CurrentPath = Directory.GetCurrentDirectory();
             CurrentPathIni = Path.Combine(CurrentPath, "inis");
-            CurrentCulture = new CultureInfo("en-US");
 
             Console.WriteLine($"AyaGyroAiming ({fileVersionInfo.ProductVersion})");
             Console.WriteLine();
@@ -82,27 +64,8 @@ namespace AyaGyroAiming
             for(int i = 0; i < 4; i++)
                 PhysicalControllers.Add(new XInputController((UserIndex)i));
 
-            CurrentGyrometer = Gyrometer.GetDefault();
-            if (CurrentGyrometer != null)
-            {
-                uint minReportInterval = CurrentGyrometer.MinimumReportInterval;
-                uint reportInterval = minReportInterval > 16 ? minReportInterval : 16;
-                CurrentGyrometer.ReportInterval = reportInterval;
-                Console.WriteLine($"Gyrometer initialised.");
-                Console.WriteLine($"Report interval set to {reportInterval}ms");
-
-                GyroVectors = new Vector3[GyroMaxSample];
-                Console.WriteLine($"Sample pool set to: {GyroMaxSample}");
-                Console.WriteLine();
-
-                CurrentGyrometer.ReadingChanged += GyroReadingChanged;
-            }
-            else
-            {
-                Console.WriteLine("No Gyrometer detected. Application will stop.");
-                Console.ReadLine();
-                return;
-            }
+            // default is 10ms rating and 10 samples
+            Girometer = new XInputGirometer(10, 10);
 
             ViGEmClient client = new ViGEmClient();
             VirtualXBOX = client.CreateXbox360Controller();
@@ -114,6 +77,7 @@ namespace AyaGyroAiming
                 foreach (XInputController PhysicalController in PhysicalControllers.Where(a => a.connected))
                 {
                     PhysicalController.SetVirtualController(VirtualXBOX);
+                    PhysicalController.SetGyroscope(Girometer);
                     Console.WriteLine($"Virtual {VirtualXBOX.GetType().Name} attached to {PhysicalController.GetType().Name} {PhysicalController.index}.");
                 }
             }
@@ -151,115 +115,54 @@ namespace AyaGyroAiming
                         if (File.Exists(filename))
                         {
                             IniFile MyIni = new IniFile(filename);
-                            bool.TryParse(MyIni.Read("EnableGyroscope", "Global"), out EnableGyroscope);
-                            bool.TryParse(MyIni.Read("EnableAccelerometer", "Global"), out EnableAccelerometer);
 
-                            uint.TryParse(MyIni.Read("GyroMaxSample", "Gyroscope"), out GyroMaxSample);
-                            float.TryParse(MyIni.Read("GyroStickSensitivityX", "Gyroscope"), NumberStyles.AllowDecimalPoint, CurrentCulture, out GyroStickSensitivityX);
-                            float.TryParse(MyIni.Read("GyroStickSensitivityY", "Gyroscope"), NumberStyles.AllowDecimalPoint, CurrentCulture, out GyroStickSensitivityY);
-                            float.TryParse(MyIni.Read("GyroStickAgressivity", "Gyroscope"), NumberStyles.AllowDecimalPoint, CurrentCulture, out GyroStickAgressivity);
-                            bool.TryParse(MyIni.Read("GyroStickInvertAxisX", "Gyroscope"), out GyroStickInvertAxisX);
-                            bool.TryParse(MyIni.Read("GyroStickInvertAxisY", "Gyroscope"), out GyroStickInvertAxisY);
-                            continue;
+                            bool EnableGyroscope = MyIni.ReadBool("EnableGyroscope", "Global");
+                            bool EnableAccelerometer = MyIni.ReadBool("EnableAccelerometer", "Global");
+                            uint GyroMaxSample = MyIni.ReadUInt("GyroMaxSample", "Gyroscope");
+
+                            float GyroStickMagnitude = MyIni.ReadFloat("GyroStickMagnitude", "Gyroscope");
+                            float GyroStickThreshold = MyIni.ReadFloat("GyroStickThreshold", "Gyroscope");
+                            float GyroStickRange = MyIni.ReadFloat("GyroStickRange", "Gyroscope");
+
+                            bool GyroStickInvertAxisX = MyIni.ReadBool("GyroStickInvertAxisX", "Gyroscope");
+                            bool GyroStickInvertAxisY = MyIni.ReadBool("GyroStickInvertAxisX", "Gyroscope");
+                            bool GyroStickInvertAxisZ = MyIni.ReadBool("GyroStickInvertAxisX", "Gyroscope");
+
+                            foreach (XInputController PhysicalController in PhysicalControllers.Where(a => a.connected))
+                            {
+                                PhysicalController.gyrometer.Enabled = EnableGyroscope;
+                                PhysicalController.gyrometer.poolsize = GyroMaxSample;
+                                PhysicalController.gyrometer.GyroStickMagnitude = GyroStickMagnitude;
+                                PhysicalController.gyrometer.GyroStickThreshold = GyroStickThreshold;
+                                PhysicalController.gyrometer.GyroStickRange = GyroStickRange;
+                                PhysicalController.gyrometer.GyroStickInvertAxisX = GyroStickInvertAxisX;
+                                PhysicalController.gyrometer.GyroStickInvertAxisY = GyroStickInvertAxisY;
+                                PhysicalController.gyrometer.GyroStickInvertAxisZ = GyroStickInvertAxisZ;
+                            }
+
+                            Console.WriteLine($"Gyroscope settings applied for {CurrentFile.Name}");
                         }
                     }
                     catch (Exception) { }
 
-                    // restore default
-                    EnableGyroscope = true;
-                    EnableAccelerometer = false;
-                    GyroMaxSample = 4;
-                    GyroStickSensitivityX = 25.0f;
-                    GyroStickSensitivityY = 25.0f;
-                    GyroStickAgressivity = 0.55f;
-                    GyroStickInvertAxisX = false;
-                    GyroStickInvertAxisY = false;
+                    // restore default : dirty
+                    foreach (XInputController PhysicalController in PhysicalControllers.Where(a => a.connected))
+                    {
+                        PhysicalController.gyrometer.Enabled = true;
+                        PhysicalController.gyrometer.poolsize = 10;
+                        PhysicalController.gyrometer.GyroStickMagnitude = 3.5f;
+                        PhysicalController.gyrometer.GyroStickThreshold = 0.1f;
+                        PhysicalController.gyrometer.GyroStickRange = 3.5f;
+                        PhysicalController.gyrometer.GyroStickInvertAxisX = false;
+                        PhysicalController.gyrometer.GyroStickInvertAxisY = false;
+                        PhysicalController.gyrometer.GyroStickInvertAxisZ = false;
+                    }
 
                     CurrenthWnd = hWnd;
                 }
 
                 Thread.Sleep(1000);
             }
-        }
-
-        static Vector3 lowPass(Vector3 input)
-        {
-            Vector3 output = new Vector3();
-            output.X = input.X * GyroStickAlpha + output.X * (1.0f - GyroStickAlpha);
-            output.Y = input.Y * GyroStickAlpha + output.Y * (1.0f - GyroStickAlpha);
-            output.Z = input.Z * GyroStickAlpha + output.Z * (1.0f - GyroStickAlpha);
-            return output;
-        }
-
-        static Vector3 highPass(Vector3 input)
-        {
-            Vector3 gravity = new Vector3();
-            gravity.X = GyroStickAlpha * gravity.X + (1 - GyroStickAlpha) * input.X;
-            gravity.Y = GyroStickAlpha * gravity.Y + (1 - GyroStickAlpha) * input.Y;
-            gravity.Z = GyroStickAlpha * gravity.Z + (1 - GyroStickAlpha) * input.Z;
-
-            Vector3 output = new Vector3();
-            output.X = Math.Max(-140.0f, Math.Min(140.0f, input.X - gravity.X));
-            output.Y = Math.Max(-140.0f, Math.Min(140.0f, input.Y - gravity.Y));
-            output.Z = Math.Max(-140.0f, Math.Min(140.0f, input.Z - gravity.Z));
-            return output;
-        }
-
-        static void GyroReadingChanged(Gyrometer sender, GyrometerReadingChangedEventArgs args)
-        {
-            if (!EnableGyroscope)
-                return;
-
-            GyrometerReading reading = args.Reading;
-
-            Vector3 gyro = new Vector3()
-            {
-                X = (float)reading.AngularVelocityX,
-                Y = (float)reading.AngularVelocityY,
-                Z = (float)reading.AngularVelocityZ
-            };
-
-            Vector3 low = lowPass(gyro);
-            Vector3 high = highPass(low);
-
-            SendGyro(high, VirtualXBOX);
-        }
-
-        static Vector3 AverageVector(Vector3[] gyro)
-        {
-            Vector3 Average = new Vector3();
-            for (int i = 0; i < gyro.Length; i++)
-            {
-                Average.X += gyro[i].X;
-                Average.Y += gyro[i].Y;
-                Average.Z += gyro[i].Z;
-            }
-
-            Average.X /= gyro.Length;
-            Average.Y /= gyro.Length;
-            Average.Z /= gyro.Length;
-
-            return Average;
-        }
-
-        static void SendGyro(Vector3 gyro, IXbox360Controller VirtualController)
-        {
-            double AngularVelocityX = Math.Sign(gyro.X) * Math.Pow((Math.Abs(gyro.X) / GyroStickSensitivityX), GyroStickAgressivity) * GyroStickSensitivityX * 2000;
-            double AngularVelocityY = Math.Sign(gyro.Y) * Math.Pow((Math.Abs(gyro.Y) / GyroStickSensitivityY), GyroStickAgressivity) * GyroStickSensitivityY * 2000;
-            double AngularVelocityZ = Math.Sign(gyro.Z) * Math.Pow((Math.Abs(gyro.Z) / GyroStickSensitivityZ), GyroStickAgressivity) * GyroStickSensitivityZ * 2000;
-
-            GyroVectors[GyroCursor].X = (GyroStickInvertAxisX ? 1 : -1) * (float)Math.Max(-32767, Math.Min(32767, AngularVelocityX));
-            GyroVectors[GyroCursor].Y = (GyroStickInvertAxisY ? 1 : -1) * (float)Math.Max(-32767, Math.Min(32767, AngularVelocityY));
-            GyroVectors[GyroCursor].Z = (GyroStickInvertAxisZ ? 1 : -1) * (float)Math.Max(-32767, Math.Min(32767, AngularVelocityZ));
-
-            Vector3 output = AverageVector(GyroVectors);
-            foreach (XInputController PhysicalController in PhysicalControllers.Where(a => a.connected))
-                PhysicalController.UpdateGyro(output);
-
-            if (GyroCursor < GyroMaxSample - 1)
-                GyroCursor++;
-            else
-                GyroCursor = 0;
         }
 
         static bool ConsoleEventCallback(int eventType)

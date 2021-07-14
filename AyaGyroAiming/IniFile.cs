@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -23,11 +24,39 @@ namespace AyaGyroAiming
             Path = new FileInfo(IniPath).FullName;
         }
 
-        public string Read(string Key, string Section)
+        public string ReadString(string Key, string Section)
         {
             var RetVal = new StringBuilder(255);
             GetPrivateProfileString(Section, Key, "", RetVal, 255, Path);
             return RetVal.ToString();
+        }
+
+        public bool ReadBool(string Key, string Section)
+        {
+            string value = ReadString(Key, Section);
+            bool output; bool.TryParse(value, out output);
+            return output;
+        }
+
+        public float ReadFloat(string Key, string Section)
+        {
+            string value = ReadString(Key, Section);
+            float output; float.TryParse(value, NumberStyles.AllowDecimalPoint, new CultureInfo("en-US"), out output);
+            return output;
+        }
+
+        public uint ReadUInt(string Key, string Section)
+        {
+            string value = ReadString(Key, Section);
+            uint output; uint.TryParse(value, out output);
+            return output;
+        }
+
+        public int ReadInt(string Key, string Section)
+        {
+            string value = ReadString(Key, Section);
+            int output; int.TryParse(value, out output);
+            return output;
         }
 
         public void Write(string Key, string Value, string Section)
@@ -47,7 +76,7 @@ namespace AyaGyroAiming
 
         public bool KeyExists(string Key, string Section)
         {
-            return Read(Key, Section).Length > 0;
+            return ReadString(Key, Section).Length > 0;
         }
     }
 }
