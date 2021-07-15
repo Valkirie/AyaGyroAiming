@@ -124,6 +124,71 @@ namespace AyaGyroAiming
             // monitor processes and apply specific profile
             Thread MonitorThread = new Thread(MonitorProcess);
             MonitorThread.Start();
+
+            // listen to user inputs (a bit too rigid, improve me)
+            ConsoleListener();
+        }
+
+        static void ConsoleListener()
+        {
+            while (IsRunning)
+            {
+                string input = Console.ReadLine();
+                string[] array = input.Split(' ');
+
+                string command = array[0];
+                string variable;
+
+                try
+                {
+                    switch (command)
+                    {
+                        case "/set":
+                            if (array.Length < 3)
+                                Console.WriteLine("expected format: /set settings value");
+                            variable = array[1];
+
+                            switch (Type.GetTypeCode(Properties.Settings.Default[variable].GetType()))
+                            {
+                                case TypeCode.Boolean:
+                                    Properties.Settings.Default[variable] = bool.Parse(array[2]);
+                                    break;
+                                case TypeCode.Single:
+                                case TypeCode.Decimal:
+                                    Properties.Settings.Default[variable] = float.Parse(array[2]);
+                                    break;
+                                case TypeCode.Int16:
+                                case TypeCode.Int32:
+                                case TypeCode.Int64:
+                                    Properties.Settings.Default[variable] = int.Parse(array[2]);
+                                    break;
+                                case TypeCode.UInt16:
+                                case TypeCode.UInt32:
+                                case TypeCode.UInt64:
+                                    Properties.Settings.Default[variable] = uint.Parse(array[2]);
+                                    break;
+                            }
+                            Properties.Settings.Default.Save();
+                            break;
+                        case "/get":
+                            if (array.Length < 2)
+                                Console.WriteLine("expected format: /get settings");
+                            variable = array[1];
+                            Console.WriteLine($"{variable}: {Properties.Settings.Default[variable]}");
+                            break;
+                        case "/cpl":
+                            Process.Start("joy.cpl");
+                            break;
+                        case "/help":
+                            Console.WriteLine("Availables commands are:");
+                            Console.WriteLine("/set settings value");
+                            Console.WriteLine("/get settings");
+                            Console.WriteLine("/cpl");
+                            break;
+                    }
+
+                }catch(Exception ex) { }
+            }
         }
 
         static void MonitorProcess()
