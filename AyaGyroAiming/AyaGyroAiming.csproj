@@ -5,7 +5,7 @@
     <TargetFrameworks>net452</TargetFrameworks>
 	<TargetPlatformVersion>8.0</TargetPlatformVersion>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-	<Version>0.13</Version>
+	<Version>0.14</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net452|AnyCPU'">
@@ -28,8 +28,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="inis\default.ini">
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="inis\example.ini">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
 </Project>

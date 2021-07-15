@@ -18,7 +18,7 @@ namespace AyaGyroAiming
 
     public class XInputGirometer
     {
-        public Gyrometer gyrometer;
+        public Gyrometer motion;
         public uint poolsize;
 
         // Compute & Maths
@@ -31,42 +31,57 @@ namespace AyaGyroAiming
         const float GyroStickAlpha = 0.2f;
 
         // Settings
-        public float GyroStickMagnitude = 3.5f;
-        public float GyroStickThreshold = 0.1f;
-        public float GyroStickRange = 3.5f;
-        public bool GyroStickInvertAxisX = false;
-        public bool GyroStickInvertAxisY = false;
-        public bool GyroStickInvertAxisZ = false;
-        public bool Enabled = true;
+        float GyroStickMagnitude;
+        float GyroStickThreshold;
+        float GyroStickAggressivity;
+        float GyroStickRange;
+        bool GyroStickInvertAxisX;
+        bool GyroStickInvertAxisY;
+        bool GyroStickInvertAxisZ;
+        bool Enabled;
 
         public event XInputGirometerReadingChangedEventHandler ReadingChanged;
         public delegate void XInputGirometerReadingChangedEventHandler(Object sender, XInputGirometerReadingChangedEventArgs e);
 
-        public XInputGirometer(uint _rate, uint _size)
+        public XInputGirometer(bool _enable, uint _rate, uint _size, float _magnitude, float _threshold, float _aggro, float _range, bool _invX, bool _invY, bool _invZ)
         {
-            gyrometer = Gyrometer.GetDefault();
-            if (gyrometer != null)
+            motion = Gyrometer.GetDefault();
+            if (motion != null)
             {
+                Enabled = _enable;
+                GyroStickMagnitude = _magnitude;
+                GyroStickThreshold = _threshold;
+                GyroStickAggressivity = _aggro;
+                GyroStickRange = _range;
+                GyroStickInvertAxisX = _invX;
+                GyroStickInvertAxisY = _invY;
+                GyroStickInvertAxisZ = _invZ;
+
                 poolsize = _size;
                 GyroX = new float[_size];
                 GyroY = new float[_size];
                 GyroZ = new float[_size];
 
-                gyrometer.ReportInterval = _rate < gyrometer.MinimumReportInterval ? gyrometer.MinimumReportInterval : _rate;
+                motion.ReportInterval = _rate < motion.MinimumReportInterval ? motion.MinimumReportInterval : _rate;
                 Console.WriteLine($"Gyrometer initialised.");
-                Console.WriteLine($"Gyrometer report interval set to {gyrometer.MinimumReportInterval}ms");
-
+                Console.WriteLine($"Gyrometer report interval set to {motion.ReportInterval}ms");
                 Console.WriteLine($"Gyrometer sample pool size set to: {_size}");
                 Console.WriteLine();
 
-                gyrometer.ReadingChanged += GyroReadingChanged;
+                motion.ReadingChanged += GyroReadingChanged;
             }
-            else
-            {
-                Console.WriteLine("No Gyrometer detected. Application will stop.");
-                Console.ReadLine();
-                return;
-            }
+        }
+
+        public void UpdateSettings(bool _enable, float _magnitude, float _threshold, float _aggro, float _range, bool _invX, bool _invY, bool _invZ)
+        {
+            Enabled = _enable;
+            GyroStickMagnitude = _magnitude;
+            GyroStickThreshold = _threshold;
+            GyroStickAggressivity = _aggro;
+            GyroStickRange = _range;
+            GyroStickInvertAxisX = _invX;
+            GyroStickInvertAxisY = _invY;
+            GyroStickInvertAxisZ = _invZ;
         }
 
         static Vector3 SmoothReading(Vector3 input, float GyroStickAlpha)
@@ -113,25 +128,25 @@ namespace AyaGyroAiming
 
             GyrometerReading reading = args.Reading;
 
-            Vector3 input = new Vector3((float)reading.AngularVelocityX, (float)reading.AngularVelocityY, (float)reading.AngularVelocityZ);
+            Vector3 input = new Vector3((float)reading.AngularVelocityY, (float)reading.AngularVelocityX, (float)reading.AngularVelocityZ);
+            input.X = (float)(Math.Sign(input.X) * Math.Pow(Math.Abs(input.X) / GyroStickRange, GyroStickAggressivity) * GyroStickRange);
+            input.Y = (float)(Math.Sign(input.Y) * Math.Pow(Math.Abs(input.Y) / GyroStickRange, GyroStickAggressivity) * GyroStickRange);
+            input.Z = (float)(Math.Sign(input.Z) * Math.Pow(Math.Abs(input.Z) / GyroStickRange, GyroStickAggressivity) * GyroStickRange);
+
             input = SmoothReading(input, GyroStickAlpha);
             input = NormalizeReading(input, GyroStickMagnitude, GyroStickThreshold);
 
-            if (poolidx <= poolsize - 1)
-            {
-                GyroX[poolidx] = Math.Max(-GyroStickRange, Math.Min(GyroStickRange, input.X));
-                GyroY[poolidx] = Math.Max(-GyroStickRange, Math.Min(GyroStickRange, input.Y));
-                GyroZ[poolidx] = Math.Max(-GyroStickRange, Math.Min(GyroStickRange, input.Z));
-                poolidx++;
-            }
-            else
-                poolidx = 0;
+            GyroX[poolidx] = Math.Max(-GyroStickRange, Math.Min(GyroStickRange, input.X));
+            GyroY[poolidx] = Math.Max(-GyroStickRange, Math.Min(GyroStickRange, input.Y));
+            GyroZ[poolidx] = Math.Max(-GyroStickRange, Math.Min(GyroStickRange, input.Z));
+            poolidx++;
+            poolidx %= poolsize;
 
             // scale value
             Vector3 posAverage = new Vector3()
             {
-                X = GyroStickInvertAxisX ? 1 : -1 * GyroY.Median(),
-                Y = GyroStickInvertAxisY ? 1 : -1 * GyroX.Median(),
+                X = GyroStickInvertAxisX ? 1 : -1 * GyroX.Median(),
+                Y = GyroStickInvertAxisY ? 1 : -1 * GyroY.Median(),
                 Z = GyroStickInvertAxisZ ? 1 : -1 * GyroZ.Median(),
             };
             posAverage *= 10000.0f;
