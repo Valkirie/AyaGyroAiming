@@ -11,9 +11,9 @@ namespace AyaGyroAiming
 {
     public class XInputGirometerReadingChangedEventArgs : EventArgs
     {
-        public short AngularStickX { get; set; }
-        public short AngularStickY { get; set; }
-        public short AngularStickZ { get; set; }
+        public float AngularStickX { get; set; }
+        public float AngularStickY { get; set; }
+        public float AngularStickZ { get; set; }
     }
 
     public class XInputGirometer
@@ -154,9 +154,9 @@ namespace AyaGyroAiming
             // raise event
             XInputGirometerReadingChangedEventArgs newargs = new XInputGirometerReadingChangedEventArgs()
             {
-                AngularStickX = (short)posAverage.X,
-                AngularStickY = (short)posAverage.Y,
-                AngularStickZ = (short)posAverage.Z
+                AngularStickX = posAverage.X,
+                AngularStickY = posAverage.Y,
+                AngularStickZ = posAverage.Z,
             };
             ReadingChanged?.Invoke(this, newargs);
         }
