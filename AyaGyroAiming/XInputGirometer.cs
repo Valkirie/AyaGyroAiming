@@ -145,9 +145,9 @@ namespace AyaGyroAiming
             // scale value
             Vector3 posAverage = new Vector3()
             {
-                X = GyroStickInvertAxisX ? 1 : -1 * GyroX.Median(),
-                Y = GyroStickInvertAxisY ? 1 : -1 * GyroY.Median(),
-                Z = GyroStickInvertAxisZ ? 1 : -1 * GyroZ.Median(),
+                X = (float)(GyroStickInvertAxisX ? 1.0f : -1.0f) * (float)GyroX.Median(),
+                Y = (float)(GyroStickInvertAxisY ? 1.0f : -1.0f) * (float)GyroY.Median(),
+                Z = (float)(GyroStickInvertAxisZ ? 1.0f : -1.0f) * (float)GyroZ.Median(),
             };
             posAverage *= 10000.0f;
 
