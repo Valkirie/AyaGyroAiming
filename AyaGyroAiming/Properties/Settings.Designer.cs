@@ -26,24 +26,12 @@ namespace AyaGyroAiming.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool EnableGyroscope {
+        public bool EnableGyroAiming {
             get {
-                return ((bool)(this["EnableGyroscope"]));
+                return ((bool)(this["EnableGyroAiming"]));
             }
             set {
-                this["EnableGyroscope"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool EnableAccelerometer {
-            get {
-                return ((bool)(this["EnableAccelerometer"]));
-            }
-            set {
-                this["EnableAccelerometer"] = value;
+                this["EnableGyroAiming"] = value;
             }
         }
         

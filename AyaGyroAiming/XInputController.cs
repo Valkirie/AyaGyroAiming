@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Numerics;
 using System.Text;
 using System.Threading;
@@ -19,11 +20,24 @@ namespace AyaGyroAiming
         int rate;
 
         public IXbox360Controller vcontroller;
-        public XInputGirometer gyrometer;
+        public DualShockPadMeta meta;
 
-        public Vector3 gyroreading;
+        public XInputGirometer gyrometer;
+        public Vector3 AngularStick;
+        public Vector3 AngularVelocity;
+
+        public XInputAccelerometer accelerometer;
+        public float[] Acceleration;
+
         public UserIndex index;
+        public PhysicalAddress PadMacAddress = new PhysicalAddress(new byte[] { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 });
         public bool connected = false;
+
+        byte[][] udpOutBuffers = new byte[UdpServer.NUMBER_SLOTS][]
+        {
+                    new byte[100], new byte[100],
+                    new byte[100], new byte[100],
+        };
 
         public XInputController(UserIndex _idx, int _rate = 10)
         {
@@ -31,8 +45,21 @@ namespace AyaGyroAiming
             index = _idx;
             rate = _rate;
 
+            meta = new DualShockPadMeta()
+            {
+                BatteryStatus = DsBattery.Full,
+                ConnectionType = DsConnection.Bluetooth,
+                IsActive = true,
+                PadId = (byte)0, //_idx
+                PadMacAddress = new PhysicalAddress(new byte[] { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 }),
+                Model = DsModel.DS4,
+                PadState = DsState.Connected
+            };
+
             connected = controller.IsConnected;
-            gyroreading = new Vector3();
+            AngularStick = new Vector3();
+            AngularVelocity = new Vector3();
+            Acceleration = new float[3];
 
             Thread UpdateThread = new Thread(Update);
             UpdateThread.Start();
@@ -43,17 +70,49 @@ namespace AyaGyroAiming
             vcontroller = _vcontroller;
         }
 
+        UdpServer server;
+        public void SetUdpServer(UdpServer _server)
+        {
+            server = _server;
+        }
+
         public void SetGyroscope(XInputGirometer _gyrometer)
         {
             gyrometer = _gyrometer;
             gyrometer.ReadingChanged += Girometer_ReadingChanged;
         }
 
+        public void SetAccelerometer(XInputAccelerometer _accelerometer)
+        {
+            accelerometer = _accelerometer;
+            accelerometer.ReadingChanged += Accelerometer_ReadingChanged;
+        }
+
+        private void Accelerometer_ReadingChanged(object sender, XInputAccelerometerReadingChangedEventArgs e)
+        {
+            Acceleration[0] = e.AccelerationX;
+            Acceleration[1] = e.AccelerationY;
+            Acceleration[2] = e.AccelerationZ;
+
+            if (server != null)
+                server.NewReportIncoming(ref meta, this, udpOutBuffers[0]);
+        }
+
         private void Girometer_ReadingChanged(object sender, XInputGirometerReadingChangedEventArgs e)
         {
-            gyroreading.X = e.AngularStickX;
-            gyroreading.Y = e.AngularStickY;
-            gyroreading.Z = e.AngularStickZ;
+            AngularStick = new Vector3()
+            {
+                X = e.AngularStickX,
+                Y = e.AngularStickY,
+                Z = e.AngularStickZ,
+            };
+
+            AngularVelocity = new Vector3()
+            {
+                X = e.AngularVelocityX,
+                Y = e.AngularVelocityY,
+                Z = e.AngularVelocityZ
+            };
         }
 
         void Update()
@@ -65,8 +124,8 @@ namespace AyaGyroAiming
                 // push the values
                 if (vcontroller != null)
                 {
-                    short ThumbX = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbX + gyroreading.X));
-                    short ThumbY = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbY + gyroreading.Y));
+                    short ThumbX = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbX + (gyrometer.EnableGyroAiming ? AngularStick.X : 0)));
+                    short ThumbY = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbY + (gyrometer.EnableGyroAiming ? AngularStick.Y : 0)));
 
                     vcontroller.SetAxisValue(Xbox360Axis.LeftThumbX, gamepad.LeftThumbX);
                     vcontroller.SetAxisValue(Xbox360Axis.LeftThumbY, gamepad.LeftThumbY);
