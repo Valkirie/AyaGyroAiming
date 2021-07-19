@@ -3,6 +3,7 @@ using Nefarius.ViGEm.Client.Targets.Xbox360;
 using SharpDX.XInput;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Net.NetworkInformation;
@@ -26,40 +27,52 @@ namespace AyaGyroAiming
         public Vector3 AngularStick;
         public Vector3 AngularVelocity;
 
+        [Flags]
+        public enum UdpStatus
+        {
+            None = 0,
+            HasGyroscope = 1,
+            HasAccelerometer = 2
+        }
+
+        private UdpStatus MotionStatus; 
+
         public XInputAccelerometer accelerometer;
-        public float[] Acceleration;
+        public Vector3 Acceleration;
 
         public UserIndex index;
-        public PhysicalAddress PadMacAddress = new PhysicalAddress(new byte[] { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 });
         public bool connected = false;
 
-        byte[][] udpOutBuffers = new byte[UdpServer.NUMBER_SLOTS][]
+        private byte[][] udpOutBuffers = new byte[UdpServer.NUMBER_SLOTS][]
         {
-                    new byte[100], new byte[100],
-                    new byte[100], new byte[100],
+            new byte[100], new byte[100],
+            new byte[100], new byte[100],
         };
 
-        public XInputController(UserIndex _idx, int _rate = 10)
+        public XInputController(UserIndex _idx, int _rate, PhysicalAddress PadMacAddress)
         {
             controller = new Controller(_idx);
             index = _idx;
             rate = _rate;
 
+            // fake data for initialization
             meta = new DualShockPadMeta()
             {
                 BatteryStatus = DsBattery.Full,
                 ConnectionType = DsConnection.Bluetooth,
                 IsActive = true,
                 PadId = (byte)0, //_idx
-                PadMacAddress = new PhysicalAddress(new byte[] { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 }),
+                PadMacAddress = PadMacAddress,
                 Model = DsModel.DS4,
                 PadState = DsState.Connected
             };
 
             connected = controller.IsConnected;
+
+            // initialize vectors
             AngularStick = new Vector3();
             AngularVelocity = new Vector3();
-            Acceleration = new float[3];
+            Acceleration = new Vector3();
 
             Thread UpdateThread = new Thread(Update);
             UpdateThread.Start();
@@ -90,29 +103,25 @@ namespace AyaGyroAiming
 
         private void Accelerometer_ReadingChanged(object sender, XInputAccelerometerReadingChangedEventArgs e)
         {
-            Acceleration[0] = e.AccelerationX;
-            Acceleration[1] = e.AccelerationY;
-            Acceleration[2] = e.AccelerationZ;
-
-            if (server != null)
-                server.NewReportIncoming(ref meta, this, udpOutBuffers[0]);
+            // used for udp server
+            Acceleration.X = e.AccelerationX;
+            Acceleration.Y = e.AccelerationY;
+            Acceleration.Z = e.AccelerationZ;
+            FlagsHelper.Set(ref MotionStatus, UdpStatus.HasAccelerometer);
         }
 
         private void Girometer_ReadingChanged(object sender, XInputGirometerReadingChangedEventArgs e)
         {
-            AngularStick = new Vector3()
-            {
-                X = e.AngularStickX,
-                Y = e.AngularStickY,
-                Z = e.AngularStickZ,
-            };
+            // used for gyro2stick
+            AngularStick.X = e.AngularStickX;
+            AngularStick.Y = e.AngularStickY;
+            AngularStick.Z = e.AngularStickZ;
 
-            AngularVelocity = new Vector3()
-            {
-                X = e.AngularVelocityX,
-                Y = e.AngularVelocityY,
-                Z = e.AngularVelocityZ
-            };
+            // used for udp server
+            AngularVelocity.X = e.AngularVelocityX;
+            AngularVelocity.Y = e.AngularVelocityY;
+            AngularVelocity.Z = e.AngularVelocityZ;
+            FlagsHelper.Set(ref MotionStatus, UdpStatus.HasGyroscope);
         }
 
         void Update()
@@ -121,7 +130,17 @@ namespace AyaGyroAiming
             {
                 gamepad = controller.GetState().Gamepad;
 
-                // push the values
+
+                // always push values to the upd server ?
+                if (server != null) // && MotionStatus.HasFlag(UdpStatus.HasGyroscope | UdpStatus.HasAccelerometer))
+                {
+                    server.NewReportIncoming(ref meta, this, udpOutBuffers[0]);
+                    FlagsHelper.Unset(ref MotionStatus, UdpStatus.HasAccelerometer | UdpStatus.HasGyroscope);
+                }
+
+                // todo:    allow users to set gyro2stick to either right or left stick
+                //          allow users to set triggers to enable gyro2stick (while aiming in games, etc..)
+
                 if (vcontroller != null)
                 {
                     short ThumbX = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbX + (gyrometer.EnableGyroAiming ? AngularStick.X : 0)));

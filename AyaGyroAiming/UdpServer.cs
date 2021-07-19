@@ -82,13 +82,14 @@ namespace AyaGyroAiming
         private const int ARG_BUFFER_LEN = 80;
 
         private Stopwatch sw;
+        private PhysicalAddress PadMacAddress;
         private int udpPacketCount = 0;
 
         public delegate void GetPadDetail(int padIdx, ref DualShockPadMeta meta);
 
         private GetPadDetail portInfoGet;
 
-        static void GetPadDetailForIdx(int padIdx, ref DualShockPadMeta meta)
+        void GetPadDetailForIdx(int padIdx, ref DualShockPadMeta meta)
         {
             meta = new DualShockPadMeta()
             {
@@ -96,14 +97,15 @@ namespace AyaGyroAiming
                 ConnectionType = DsConnection.Bluetooth,
                 IsActive = true,
                 PadId = (byte)0, //_idx
-                PadMacAddress = new PhysicalAddress(new byte[] { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 }),
+                PadMacAddress = PadMacAddress,
                 Model = DsModel.DS4,
                 PadState = DsState.Connected
             };
         }
 
-        public UdpServer()
+        public UdpServer(PhysicalAddress _PadMacAddress)
         {
+            PadMacAddress = _PadMacAddress;
             portInfoGet = GetPadDetailForIdx;
 
             sw = new Stopwatch();
@@ -512,7 +514,7 @@ namespace AyaGyroAiming
 
                 //motion timestamp
                 long microseconds = sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
-                if (hidReport.gyrometer?.motion != null)
+                if (hidReport.gyrometer?.sensor != null)
                     Array.Copy(BitConverter.GetBytes((ulong)microseconds), 0, outputData, outIdx, 8);
                 else
                     Array.Clear(outputData, outIdx, 8);
@@ -522,11 +524,11 @@ namespace AyaGyroAiming
                 //accelerometer
                 if (hidReport.Acceleration != null)
                 {
-                    Array.Copy(BitConverter.GetBytes(hidReport.Acceleration[0]), 0, outputData, outIdx, 4);
+                    Array.Copy(BitConverter.GetBytes(hidReport.Acceleration.X), 0, outputData, outIdx, 4);
                     outIdx += 4;
-                    Array.Copy(BitConverter.GetBytes(hidReport.Acceleration[2]), 0, outputData, outIdx, 4);
+                    Array.Copy(BitConverter.GetBytes(hidReport.Acceleration.Z), 0, outputData, outIdx, 4);
                     outIdx += 4;
-                    Array.Copy(BitConverter.GetBytes(-hidReport.Acceleration[1]), 0, outputData, outIdx, 4);
+                    Array.Copy(BitConverter.GetBytes(-hidReport.Acceleration.Y), 0, outputData, outIdx, 4);
                     outIdx += 4;
                 }
                 else

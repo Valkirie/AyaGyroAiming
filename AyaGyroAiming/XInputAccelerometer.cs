@@ -17,22 +17,22 @@ namespace AyaGyroAiming
 
     public class XInputAccelerometer
     {
-        public Accelerometer motion;
+        public Accelerometer sensor;
 
         public event XInputAccelerometerReadingChangedEventHandler ReadingChanged;
         public delegate void XInputAccelerometerReadingChangedEventHandler(Object sender, XInputAccelerometerReadingChangedEventArgs e);
 
         public XInputAccelerometer(uint _rate)
         {
-            motion = Accelerometer.GetDefault();
-            if (motion != null)
+            sensor = Accelerometer.GetDefault();
+            if (sensor != null)
             {
-                motion.ReportInterval = _rate < motion.MinimumReportInterval ? motion.MinimumReportInterval : _rate;
+                sensor.ReportInterval = _rate < sensor.MinimumReportInterval ? sensor.MinimumReportInterval : _rate;
                 Console.WriteLine($"Accelerometer initialised.");
-                Console.WriteLine($"Accelerometer report interval set to {motion.ReportInterval}ms");
+                Console.WriteLine($"Accelerometer report interval set to {sensor.ReportInterval}ms");
                 Console.WriteLine();
 
-                motion.ReadingChanged += AcceleroReadingChanged;
+                sensor.ReadingChanged += AcceleroReadingChanged;
             }
         }
 

@@ -10,6 +10,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -37,7 +38,7 @@ namespace AyaGyroAiming
         static extern int GetWindowText(int hWnd, StringBuilder text, int count);
 
         // controllers vars
-        static List<XInputController> PhysicalControllers = new List<XInputController>();
+        static XInputController PhysicalController;
         static IXbox360Controller VirtualXBOX;
         static XInputGirometer Gyrometer;
         static XInputAccelerometer Accelerometer;
@@ -48,6 +49,7 @@ namespace AyaGyroAiming
 
         static bool IsRunning = true;
         static string CurrentPath, CurrentPathIni;
+        static PhysicalAddress PadMacAddress = new PhysicalAddress(new byte[] { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 });
 
         // settings vars
         static bool EnableGyroAiming;
@@ -81,26 +83,31 @@ namespace AyaGyroAiming
             CurrentHandler = new ConsoleEventDelegate(ConsoleEventCallback);
             SetConsoleCtrlHandler(CurrentHandler, true);
 
-            // should be one only (todo)
-            for(int i = 0; i < 4; i++)
-                PhysicalControllers.Add(new XInputController((UserIndex)i));
+            // prepare physical controller
+            PhysicalController = new XInputController(0, 10, PadMacAddress);
+
+            if (PhysicalController == null)
+            {
+                Console.WriteLine("No physical controller detected. Application will stop.");
+                Console.ReadLine();
+                return;
+            }
 
             // start UDP server (temp)
-            UdpServer _udpServer = new UdpServer();
+            UdpServer _udpServer = new UdpServer(PadMacAddress);
             _udpServer.Start(26760);
 
             if (_udpServer != null)
             {
                 Console.WriteLine($"UDP server has started. Listening to port: 26760");
                 Console.WriteLine();
-                foreach (XInputController PhysicalController in PhysicalControllers.Where(a => a.connected))
-                    PhysicalController.SetUdpServer(_udpServer);
+                PhysicalController.SetUdpServer(_udpServer);
             }
 
             // default is 10ms rating and 10 samples
             Gyrometer = new XInputGirometer(GyroPullRate, GyroMaxSample, GyroStickMagnitude, GyroStickThreshold, GyroStickAggressivity, GyroStickRange, GyroStickInvertAxisX, GyroStickInvertAxisY, GyroStickInvertAxisZ);
 
-            if (Gyrometer.motion == null)
+            if (Gyrometer.sensor == null)
             {
                 Console.WriteLine("No Gyrometer detected. Application will stop.");
                 Console.ReadLine();
@@ -110,7 +117,7 @@ namespace AyaGyroAiming
             // default is 10ms rating
             Accelerometer = new XInputAccelerometer(GyroPullRate);
 
-            if (Accelerometer.motion == null)
+            if (Accelerometer.sensor == null)
             {
                 Console.WriteLine("No Accelerometer detected. Application will stop.");
                 Console.ReadLine();
@@ -129,13 +136,10 @@ namespace AyaGyroAiming
 
             VirtualXBOX.Connect();
             Console.WriteLine($"Virtual {VirtualXBOX.GetType().Name} initialised.");
-            foreach (XInputController PhysicalController in PhysicalControllers.Where(a => a.connected))
-            {
-                PhysicalController.SetVirtualController(VirtualXBOX);
-                PhysicalController.SetGyroscope(Gyrometer);
-                PhysicalController.SetAccelerometer(Accelerometer);
-                Console.WriteLine($"Virtual {VirtualXBOX.GetType().Name} attached to {PhysicalController.GetType().Name} {PhysicalController.index}.");
-            }
+            PhysicalController.SetVirtualController(VirtualXBOX);
+            PhysicalController.SetGyroscope(Gyrometer);
+            PhysicalController.SetAccelerometer(Accelerometer);
+            Console.WriteLine($"Virtual {VirtualXBOX.GetType().Name} attached to {PhysicalController.GetType().Name} {PhysicalController.index}.");
 
             // monitor processes and apply specific profile
             Thread MonitorThread = new Thread(MonitorProcess);
@@ -185,6 +189,7 @@ namespace AyaGyroAiming
                                     Properties.Settings.Default[variable] = uint.Parse(array[2]);
                                     break;
                             }
+                            Console.WriteLine($"{variable} set to: {array[2]}");
                             Properties.Settings.Default.Save();
                             UpdateSettings();
                             break;
@@ -221,6 +226,10 @@ namespace AyaGyroAiming
             GyroStickInvertAxisX = Properties.Settings.Default.GyroStickInvertAxisX;
             GyroStickInvertAxisY = Properties.Settings.Default.GyroStickInvertAxisY;
             GyroStickInvertAxisZ = Properties.Settings.Default.GyroStickInvertAxisZ;
+
+            // update controller settings
+            if (PhysicalController != null)
+                PhysicalController.gyrometer.UpdateSettings(EnableGyroAiming, GyroStickMagnitude, GyroStickThreshold, GyroStickAggressivity, GyroStickRange, GyroStickInvertAxisX, GyroStickInvertAxisY, GyroStickInvertAxisZ);
         }
 
         static void MonitorProcess()
@@ -258,17 +267,14 @@ namespace AyaGyroAiming
                             bool GyroStickInvertAxisY = MyIni.ReadBool("GyroStickInvertAxisX", "Gyroscope");
                             bool GyroStickInvertAxisZ = MyIni.ReadBool("GyroStickInvertAxisX", "Gyroscope");
 
-                            foreach (XInputController PhysicalController in PhysicalControllers.Where(a => a.connected))
+                            // update controller settings
+                            if (PhysicalController != null)
                                 PhysicalController.gyrometer.UpdateSettings(EnableGyroAiming, GyroStickMagnitude, GyroStickThreshold, GyroStickAggressivity, GyroStickRange, GyroStickInvertAxisX, GyroStickInvertAxisY, GyroStickInvertAxisZ);
 
                             Console.WriteLine($"Gyroscope settings applied for {CurrentFile.Name}");
                         }
                         else
-                        {
-                            // restore default
-                            foreach (XInputController PhysicalController in PhysicalControllers.Where(a => a.connected))
-                                PhysicalController.gyrometer.UpdateSettings(EnableGyroAiming, GyroStickMagnitude, GyroStickThreshold, GyroStickAggressivity, GyroStickRange, GyroStickInvertAxisX, GyroStickInvertAxisY, GyroStickInvertAxisZ);
-                        }
+                            UpdateSettings();
                     }
                     catch (Exception) { }
 
