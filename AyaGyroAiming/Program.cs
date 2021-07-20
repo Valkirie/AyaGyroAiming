@@ -5,6 +5,7 @@ using PInvoke;
 using SharpDX.XInput;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -203,10 +204,14 @@ namespace AyaGyroAiming
                             Process.Start("joy.cpl");
                             break;
                         case "/help":
+                            Console.WriteLine($"Available settings are:");
+                            foreach (SettingsProperty setting in Properties.Settings.Default.Properties)
+                                Console.WriteLine($"\t{setting.Name}");
+                            Console.WriteLine();
                             Console.WriteLine("Availables commands are:");
-                            Console.WriteLine("/set settings value");
-                            Console.WriteLine("/get settings");
-                            Console.WriteLine("/cpl");
+                            Console.WriteLine("\t/set settings value (define global value)");
+                            Console.WriteLine("\t/get settings (retrieve global value)");
+                            Console.WriteLine("\t/cpl (display the Game Controllers)");
                             break;
                     }
 
