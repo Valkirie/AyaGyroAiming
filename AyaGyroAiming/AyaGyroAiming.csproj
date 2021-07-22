@@ -5,7 +5,7 @@
     <TargetFrameworks>net452</TargetFrameworks>
 	<TargetPlatformVersion>8.0</TargetPlatformVersion>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-	<Version>0.16</Version>
+	<Version>0.17</Version>
 	<NoWin32Manifest>true</NoWin32Manifest>
   </PropertyGroup>
 
