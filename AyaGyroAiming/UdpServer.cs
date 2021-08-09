@@ -81,7 +81,7 @@ namespace AyaGyroAiming
         private SemaphoreSlim _pool;
         private const int ARG_BUFFER_LEN = 80;
 
-        private Stopwatch sw;
+        public Stopwatch sw;
         private PhysicalAddress PadMacAddress;
         private int udpPacketCount = 0;
 

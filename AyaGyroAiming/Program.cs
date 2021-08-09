@@ -41,6 +41,7 @@ namespace AyaGyroAiming
         // controllers vars
         static XInputController PhysicalController;
         static IXbox360Controller VirtualXBOX;
+        static IDualShock4Controller VirtualDS4;
         static XInputGirometer Gyrometer;
         static XInputAccelerometer Accelerometer;
 
@@ -54,7 +55,7 @@ namespace AyaGyroAiming
 
         // settings vars
         static bool EnableGyroAiming;
-        static uint GyroPullRate;
+        static int GyroPullRate;
         static uint GyroMaxSample;
         static float GyroStickMagnitude;
         static float GyroStickThreshold;
@@ -63,6 +64,7 @@ namespace AyaGyroAiming
         static bool GyroStickInvertAxisY;
         static bool GyroStickInvertAxisZ;
         static float GyroStickAggressivity;
+        static int StickPullRate;
 
         static void Main()
         {
@@ -85,62 +87,64 @@ namespace AyaGyroAiming
             SetConsoleCtrlHandler(CurrentHandler, true);
 
             // prepare physical controller
-            PhysicalController = new XInputController(0, 10, PadMacAddress);
+            PhysicalController = new XInputController(0, StickPullRate, PadMacAddress);
 
             if (PhysicalController == null)
             {
-                Console.WriteLine("No physical controller detected. Application will stop.");
-                Console.ReadLine();
+                Console.WriteLine("No physical controller detected. Application will halt.");
                 return;
             }
 
-            // start UDP server (temp)
-            UdpServer _udpServer = new UdpServer(PadMacAddress);
-            _udpServer.Start(26760);
+            // default is 10ms rating and 10 samples
+            Gyrometer = new XInputGirometer(GyroPullRate, GyroMaxSample, GyroStickMagnitude, GyroStickThreshold, GyroStickAggressivity, GyroStickRange, GyroStickInvertAxisX, GyroStickInvertAxisY, GyroStickInvertAxisZ);
+            if (Gyrometer.sensor == null)
+            {
+                Console.WriteLine("No Gyrometer detected. Application will halt.");
+                // return;
+            }
+            PhysicalController.SetGyroscope(Gyrometer);
 
+            // default is 10ms rating
+            Accelerometer = new XInputAccelerometer(GyroPullRate);
+            if (Accelerometer.sensor == null)
+            {
+                Console.WriteLine("No Accelerometer detected. Application will halt.");
+                // return;
+            }
+            PhysicalController.SetAccelerometer(Accelerometer);
+
+            // start UDP server
+            UdpServer _udpServer = new UdpServer(PadMacAddress);
             if (_udpServer != null)
             {
+                _udpServer.Start(26760);
                 Console.WriteLine($"UDP server has started. Listening to port: 26760");
                 Console.WriteLine();
                 PhysicalController.SetUdpServer(_udpServer);
             }
 
-            // default is 10ms rating and 10 samples
-            Gyrometer = new XInputGirometer(GyroPullRate, GyroMaxSample, GyroStickMagnitude, GyroStickThreshold, GyroStickAggressivity, GyroStickRange, GyroStickInvertAxisX, GyroStickInvertAxisY, GyroStickInvertAxisZ);
-
-            if (Gyrometer.sensor == null)
-            {
-                Console.WriteLine("No Gyrometer detected. Application will stop.");
-                Console.ReadLine();
-                return;
-            }
-
-            // default is 10ms rating
-            Accelerometer = new XInputAccelerometer(GyroPullRate);
-
-            if (Accelerometer.sensor == null)
-            {
-                Console.WriteLine("No Accelerometer detected. Application will stop.");
-                Console.ReadLine();
-                return;
-            }
-
             ViGEmClient client = new ViGEmClient();
-            VirtualXBOX = client.CreateXbox360Controller();
+            // VirtualXBOX = client.CreateXbox360Controller();
+            VirtualDS4 = client.CreateDualShock4Controller();
 
-            if (VirtualXBOX == null)
+            if (VirtualXBOX == null && VirtualDS4 == null)
             {
                 Console.WriteLine("No Virtual controller detected. Application will stop.");
                 Console.ReadLine();
                 return;
             }
-
-            VirtualXBOX.Connect();
-            Console.WriteLine($"Virtual {VirtualXBOX.GetType().Name} initialised.");
-            PhysicalController.SetVirtualController(VirtualXBOX);
-            PhysicalController.SetGyroscope(Gyrometer);
-            PhysicalController.SetAccelerometer(Accelerometer);
-            Console.WriteLine($"Virtual {VirtualXBOX.GetType().Name} attached to {PhysicalController.GetType().Name} {PhysicalController.index}.");
+            else if (VirtualXBOX != null)
+            {
+                VirtualXBOX.Connect();
+                Console.WriteLine($"Virtual {VirtualXBOX.GetType().Name} initialised.");
+                PhysicalController.SetVirtualController(VirtualXBOX);
+            }
+            else if (VirtualDS4 != null)
+            {
+                VirtualDS4.Connect();
+                Console.WriteLine($"Virtual {VirtualDS4.GetType().Name} initialised.");
+                PhysicalController.SetVirtualController(VirtualDS4);
+            }
 
             // monitor processes and apply specific profile
             Thread MonitorThread = new Thread(MonitorProcess);
@@ -231,6 +235,7 @@ namespace AyaGyroAiming
             GyroStickInvertAxisX = Properties.Settings.Default.GyroStickInvertAxisX;
             GyroStickInvertAxisY = Properties.Settings.Default.GyroStickInvertAxisY;
             GyroStickInvertAxisZ = Properties.Settings.Default.GyroStickInvertAxisZ;
+            StickPullRate = Properties.Settings.Default.StickPullRate;
 
             // update controller settings
             if (PhysicalController != null)

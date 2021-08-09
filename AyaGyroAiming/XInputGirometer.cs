@@ -47,7 +47,7 @@ namespace AyaGyroAiming
         public event XInputGirometerReadingChangedEventHandler ReadingChanged;
         public delegate void XInputGirometerReadingChangedEventHandler(Object sender, XInputGirometerReadingChangedEventArgs e);
 
-        public XInputGirometer(uint _rate, uint _size, float _magnitude, float _threshold, float _aggro, float _range, bool _invX, bool _invY, bool _invZ)
+        public XInputGirometer(int _rate, uint _size, float _magnitude, float _threshold, float _aggro, float _range, bool _invX, bool _invY, bool _invZ)
         {
             sensor = Gyrometer.GetDefault();
             if (sensor != null)
@@ -65,7 +65,7 @@ namespace AyaGyroAiming
                 GyroY = new float[_size];
                 GyroZ = new float[_size];
 
-                sensor.ReportInterval = _rate < sensor.MinimumReportInterval ? sensor.MinimumReportInterval : _rate;
+                sensor.ReportInterval = _rate < sensor.MinimumReportInterval ? sensor.MinimumReportInterval : (uint)_rate;
                 Console.WriteLine($"Gyrometer initialised.");
                 Console.WriteLine($"Gyrometer report interval set to {sensor.ReportInterval}ms");
                 Console.WriteLine($"Gyrometer sample pool size set to: {_size}");

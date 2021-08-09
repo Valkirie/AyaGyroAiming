@@ -22,12 +22,12 @@ namespace AyaGyroAiming
         public event XInputAccelerometerReadingChangedEventHandler ReadingChanged;
         public delegate void XInputAccelerometerReadingChangedEventHandler(Object sender, XInputAccelerometerReadingChangedEventArgs e);
 
-        public XInputAccelerometer(uint _rate)
+        public XInputAccelerometer(int _rate)
         {
             sensor = Accelerometer.GetDefault();
             if (sensor != null)
             {
-                sensor.ReportInterval = _rate < sensor.MinimumReportInterval ? sensor.MinimumReportInterval : _rate;
+                sensor.ReportInterval = _rate < sensor.MinimumReportInterval ? sensor.MinimumReportInterval : (uint)_rate;
                 Console.WriteLine($"Accelerometer initialised.");
                 Console.WriteLine($"Accelerometer report interval set to {sensor.ReportInterval}ms");
                 Console.WriteLine();

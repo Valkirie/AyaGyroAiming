@@ -26,11 +26,14 @@
     <Setting Name="GyroStickInvertAxisZ" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="GyroPullRate" Type="System.UInt32" Scope="User">
+    <Setting Name="GyroPullRate" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">10</Value>
     </Setting>
     <Setting Name="GyroStickAggressivity" Type="System.Single" Scope="User">
       <Value Profile="(Default)">0.5</Value>
+    </Setting>
+    <Setting Name="StickPullRate" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">10</Value>
     </Setting>
   </Settings>
 </SettingsFile>

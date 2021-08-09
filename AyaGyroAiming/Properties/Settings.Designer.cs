@@ -122,9 +122,9 @@ namespace AyaGyroAiming.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("10")]
-        public uint GyroPullRate {
+        public int GyroPullRate {
             get {
-                return ((uint)(this["GyroPullRate"]));
+                return ((int)(this["GyroPullRate"]));
             }
             set {
                 this["GyroPullRate"] = value;
@@ -140,6 +140,18 @@ namespace AyaGyroAiming.Properties {
             }
             set {
                 this["GyroStickAggressivity"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int StickPullRate {
+            get {
+                return ((int)(this["StickPullRate"]));
+            }
+            set {
+                this["StickPullRate"] = value;
             }
         }
     }
