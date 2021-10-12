@@ -1,26 +1,19 @@
-﻿using MathNet.Numerics.Statistics;
-using Nefarius.ViGEm.Client;
+﻿using Nefarius.ViGEm.Client;
 using Nefarius.ViGEm.Client.Targets;
-using PInvoke;
-using SharpDX.XInput;
 using System;
-using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Net;
 using System.Net.NetworkInformation;
-using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using System.Timers;
-using Windows.Devices.Sensors;
-using Windows.Foundation;
-using static AyaGyroAiming.UdpServer;
+using System.Text.Json;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Linq;
 
 namespace AyaGyroAiming
 {
@@ -49,7 +42,7 @@ namespace AyaGyroAiming
         static int CurrenthWnd;
 
         static bool IsRunning = true;
-        static string CurrentPath, CurrentPathIni;
+        static string CurrentPath, CurrentPathIni, CurrentPathCli;
         static PhysicalAddress PadMacAddress = new PhysicalAddress(new byte[] { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 });
 
         // settings vars
@@ -63,6 +56,8 @@ namespace AyaGyroAiming
         static bool GyroStickInvertAxisY;
         static bool GyroStickInvertAxisZ;
         static float GyroStickAggressivity;
+        static int UdpPort;
+        static StringCollection HidHideDevices;
 
         static void Main()
         {
@@ -74,8 +69,47 @@ namespace AyaGyroAiming
             // paths
             CurrentPath = Directory.GetCurrentDirectory();
             CurrentPathIni = Path.Combine(CurrentPath, "inis");
+            CurrentPathCli = @"C:\Program Files\Nefarius Software Solutions e.U\HidHideCLI\HidHideCLI.exe";
+
+            // settings
+            HidHideDevices = Properties.Settings.Default.HidHideDevices;
+
+            if (!File.Exists(CurrentPathCli))
+            {
+                Console.WriteLine("HidHide is missing. Please get it from: https://github.com/ViGEm/HidHide/releases");
+                Console.ReadLine();
+                return;
+            }
+
+            // initialize HidHide
+            HidHide hidder = new HidHide(CurrentPathCli);
+            hidder.RegisterSelf();
+            foreach (Device d in hidder.GetDevices().Where(a => HidHideDevices.Contains(a.product)))
+                hidder.HideDevice(d.deviceInstancePath);
+            hidder.SetCloaking(true);
+
+            // initialize ViGem
+            try
+            {
+                ViGEmClient client = new ViGEmClient();
+                VirtualXBOX = client.CreateXbox360Controller();
+
+                if (VirtualXBOX == null)
+                {
+                    Console.WriteLine("No Virtual controller detected. Application will stop.");
+                    Console.ReadLine();
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("ViGEm is missing. Please get it from: https://github.com/ViGEm/ViGEmBus/releases");
+                Console.ReadLine();
+                return;
+            }
 
             // default settings
+            UdpPort = Properties.Settings.Default.UdpPort; // 26760
             UpdateSettings();
 
             Console.WriteLine($"AyaGyroAiming ({fileVersionInfo.ProductVersion})");
@@ -94,20 +128,8 @@ namespace AyaGyroAiming
                 return;
             }
 
-            // start UDP server (temp)
-            UdpServer _udpServer = new UdpServer(PadMacAddress);
-            _udpServer.Start(26760);
-
-            if (_udpServer != null)
-            {
-                Console.WriteLine($"UDP server has started. Listening to port: 26760");
-                Console.WriteLine();
-                PhysicalController.SetUdpServer(_udpServer);
-            }
-
             // default is 10ms rating and 10 samples
             Gyrometer = new XInputGirometer(GyroPullRate, GyroMaxSample, GyroStickMagnitude, GyroStickThreshold, GyroStickAggressivity, GyroStickRange, GyroStickInvertAxisX, GyroStickInvertAxisY, GyroStickInvertAxisZ);
-
             if (Gyrometer.sensor == null)
             {
                 Console.WriteLine("No Gyrometer detected. Application will stop.");
@@ -117,7 +139,6 @@ namespace AyaGyroAiming
 
             // default is 10ms rating
             Accelerometer = new XInputAccelerometer(GyroPullRate);
-
             if (Accelerometer.sensor == null)
             {
                 Console.WriteLine("No Accelerometer detected. Application will stop.");
@@ -125,14 +146,15 @@ namespace AyaGyroAiming
                 return;
             }
 
-            ViGEmClient client = new ViGEmClient();
-            VirtualXBOX = client.CreateXbox360Controller();
+            // start UDP server (temp)
+            UdpServer _udpServer = new UdpServer(PadMacAddress);
+            _udpServer.Start(UdpPort);
 
-            if (VirtualXBOX == null)
+            if (_udpServer != null)
             {
-                Console.WriteLine("No Virtual controller detected. Application will stop.");
-                Console.ReadLine();
-                return;
+                Console.WriteLine($"UDP server has started. Listening to port: {UdpPort}");
+                Console.WriteLine();
+                PhysicalController.SetUdpServer(_udpServer);
             }
 
             VirtualXBOX.Connect();
@@ -215,7 +237,8 @@ namespace AyaGyroAiming
                             break;
                     }
 
-                }catch(Exception /*ex*/) { }
+                }
+                catch (Exception /*ex*/) { }
             }
         }
 

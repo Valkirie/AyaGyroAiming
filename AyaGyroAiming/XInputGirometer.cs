@@ -1,10 +1,7 @@
-﻿using MathNet.Numerics.Statistics;
+﻿using SharpDX.XInput;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using Windows.Devices.Sensors;
 
 namespace AyaGyroAiming
@@ -129,10 +126,6 @@ namespace AyaGyroAiming
             GyrometerReading reading = args.Reading;
 
             Vector3 input = new Vector3((float)reading.AngularVelocityY, (float)reading.AngularVelocityX, (float)reading.AngularVelocityZ);
-            input.X = (float)(Math.Sign(input.X) * Math.Pow(Math.Abs(input.X) / GyroStickRange, GyroStickAggressivity) * GyroStickRange);
-            input.Y = (float)(Math.Sign(input.Y) * Math.Pow(Math.Abs(input.Y) / GyroStickRange, GyroStickAggressivity) * GyroStickRange);
-            input.Z = (float)(Math.Sign(input.Z) * Math.Pow(Math.Abs(input.Z) / GyroStickRange, GyroStickAggressivity) * GyroStickRange);
-
             input = SmoothReading(input, GyroStickAlpha);
             input = NormalizeReading(input, GyroStickMagnitude, GyroStickThreshold);
 
@@ -149,7 +142,11 @@ namespace AyaGyroAiming
                 Y = (float)(GyroStickInvertAxisY ? 1.0f : -1.0f) * (float)GyroY.Average(),
                 Z = (float)(GyroStickInvertAxisZ ? 1.0f : -1.0f) * (float)GyroZ.Average(),
             };
-            posAverage *= 10000.0f;
+            posAverage *= Gamepad.RightThumbDeadZone;
+
+            posAverage.X = (float)(Math.Sign(posAverage.X) * Math.Pow(Math.Abs(posAverage.X) / GyroStickRange, GyroStickAggressivity) * GyroStickRange);
+            posAverage.Y = (float)(Math.Sign(posAverage.Y) * Math.Pow(Math.Abs(posAverage.Y) / GyroStickRange, GyroStickAggressivity) * GyroStickRange);
+            posAverage.Z = (float)(Math.Sign(posAverage.Z) * Math.Pow(Math.Abs(posAverage.Z) / GyroStickRange, GyroStickAggressivity) * GyroStickRange);
 
             // raise event
             XInputGirometerReadingChangedEventArgs newargs = new XInputGirometerReadingChangedEventArgs()

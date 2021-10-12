@@ -2,15 +2,9 @@
 using Nefarius.ViGEm.Client.Targets.Xbox360;
 using SharpDX.XInput;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
-using System.Linq;
 using System.Net.NetworkInformation;
 using System.Numerics;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace AyaGyroAiming
 {
@@ -35,7 +29,7 @@ namespace AyaGyroAiming
             HasAccelerometer = 2
         }
 
-        private UdpStatus MotionStatus; 
+        private UdpStatus MotionStatus;
 
         public XInputAccelerometer accelerometer;
         public Vector3 Acceleration;
@@ -141,7 +135,7 @@ namespace AyaGyroAiming
                 // todo:    allow users to set gyro2stick to either right or left stick
                 //          allow users to set triggers to enable gyro2stick (while aiming in games, etc..)
 
-                if (vcontroller != null)
+                if (vcontroller != null && gyrometer != null)
                 {
                     short ThumbX = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbX + (gyrometer.EnableGyroAiming ? AngularStick.X : 0)));
                     short ThumbY = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbY + (gyrometer.EnableGyroAiming ? AngularStick.Y : 0)));
@@ -157,7 +151,7 @@ namespace AyaGyroAiming
 
                     vcontroller.SetButtonState(Xbox360Button.LeftShoulder, gamepad.Buttons.HasFlag(GamepadButtonFlags.LeftShoulder));
                     vcontroller.SetButtonState(Xbox360Button.RightShoulder, gamepad.Buttons.HasFlag(GamepadButtonFlags.RightShoulder));
-                    
+
                     vcontroller.SetButtonState(Xbox360Button.LeftThumb, gamepad.Buttons.HasFlag(GamepadButtonFlags.LeftThumb));
                     vcontroller.SetButtonState(Xbox360Button.RightThumb, gamepad.Buttons.HasFlag(GamepadButtonFlags.RightThumb));
 
