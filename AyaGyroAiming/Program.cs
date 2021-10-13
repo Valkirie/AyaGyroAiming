@@ -80,9 +80,10 @@ namespace AyaGyroAiming
             hidder.RegisterSelf();
 
             // todo : store default baseContainerDeviceInstancePath somewhere
+            //      : improve the way we get the DeviceID !
             foreach (Device d in hidder.GetDevices().Where(a => a.gamingDevice))
             {
-                string query = $"SELECT * FROM Win32_PnPEntity WHERE ClassGuid = \"{d.baseContainerClassGuid}\"";
+                string query = $"SELECT * FROM Win32_PnPEntity WHERE Name = \"Xbox 360 Controller for Windows\""; // WHERE ClassGuid = \"{d.baseContainerClassGuid}\"";
 
                 var moSearch = new ManagementObjectSearcher(query);
                 var moCollection = moSearch.Get();
@@ -90,11 +91,15 @@ namespace AyaGyroAiming
                 foreach (ManagementObject mo in moCollection)
                 {
                     foreach (var item in mo.Properties)
+                    {
                         if (item.Name == "DeviceID")
                         {
-                            hidder.HideDevice((string)item.Value); // d.baseContainerDeviceInstancePath);
+                            string DeviceID = ((string)item.Value);
+                            hidder.HideDevice(DeviceID); // USB\VID_045E&PID_028E\6&292C134&0&4
+                            hidder.HideDevice(d.deviceInstancePath); // USB\VID_045E&PID_028E\6&292C134&0&4
                             break;
                         }
+                    }
                 }
             }
 
@@ -127,7 +132,7 @@ namespace AyaGyroAiming
             SetConsoleCtrlHandler(CurrentHandler, true);
 
             // prepare physical controller
-            PhysicalController = new XInputController(0, (int)settings.GyroPullRate, PadMacAddress);
+            PhysicalController = new XInputController(0, settings, PadMacAddress);
 
             if (PhysicalController == null)
             {
@@ -288,8 +293,8 @@ namespace AyaGyroAiming
 
                     try
                     {
-                        FileInfo CurrentFile = new FileInfo(CurrentProcess.MainModule.FileName);
-                        string filename = Path.Combine(CurrentPathIni, CurrentFile.Name.Replace("exe", "json")).ToLower();
+                        Debug.WriteLine(CurrentProcess.ProcessName);
+                        string filename = $"{CurrentPathIni}\\{CurrentProcess.ProcessName}.json";
 
                         // check if a specific profile exists for the foreground executable
                         if (File.Exists(filename))
@@ -300,12 +305,14 @@ namespace AyaGyroAiming
                             Settings settings = JsonSerializer.Deserialize<Settings>(jsonString);
                             PhysicalController.UpdateSettings(settings);
 
-                            Console.WriteLine($"Gyroscope settings applied for {CurrentFile.Name}");
+                            Console.WriteLine($"Gyroscope settings applied for {CurrentProcess.ProcessName}");
                         }
                         else
                             UpdateSettings();
                     }
-                    catch (Exception) { }
+                    catch (Exception ex) {
+                        Debug.WriteLine(ex.Message);
+                    }
 
                     CurrenthWnd = hWnd;
                 }

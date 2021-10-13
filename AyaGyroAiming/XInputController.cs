@@ -12,7 +12,7 @@ namespace AyaGyroAiming
     {
         private Controller controller;
         private Gamepad gamepad;
-        private int rate;
+        private Settings settings;
 
         private UdpStatus MotionStatus;
         private IXbox360Controller vcontroller;
@@ -24,6 +24,9 @@ namespace AyaGyroAiming
         public Vector3 AngularStick;
         public Vector3 AngularVelocity;
         public Vector3 Acceleration;
+
+        private string TriggerString;
+        private bool TriggerPressed;
 
         [Flags]
         public enum UdpStatus
@@ -42,11 +45,12 @@ namespace AyaGyroAiming
             new byte[100], new byte[100],
         };
 
-        public XInputController(UserIndex _idx, int _rate, PhysicalAddress PadMacAddress)
+        public XInputController(UserIndex _idx, Settings _settings, PhysicalAddress PadMacAddress)
         {
             controller = new Controller(_idx);
+            settings = _settings;
+
             index = _idx;
-            rate = _rate;
 
             // fake data for initialization
             meta = new DualShockPadMeta()
@@ -117,11 +121,6 @@ namespace AyaGyroAiming
             FlagsHelper.Set(ref MotionStatus, UdpStatus.HasGyroscope);
         }
 
-        // temp
-        private string TriggerString = "LeftTrigger";
-        private bool TriggerPressed = false;
-        private Settings settings;
-
         public void UpdateSettings(Settings _settings)
         {
             settings = _settings;
@@ -141,12 +140,17 @@ namespace AyaGyroAiming
                 {
                     case "LeftTrigger":
                         TriggerPressed = gamepad.LeftTrigger != 0;
-                        break;
+                        return;
                     case "RightTrigger":
                         TriggerPressed = gamepad.RightTrigger != 0;
-                        break;
+                        return;
+                    default:
+                        TriggerPressed = false;
+                        return;
                 }
             }
+            TriggerPressed = true;
+            return;
         }
 
         private void Update()
@@ -170,14 +174,14 @@ namespace AyaGyroAiming
 
                 UpdateTrigger();
 
-                short ThumbX = (short)(gamepad.RightThumbX + (settings.EnableGyroAiming && TriggerPressed ? AngularStick.X : 0));
-                short ThumbY = (short)(gamepad.RightThumbY + (settings.EnableGyroAiming && TriggerPressed ? AngularStick.Y : 0));
+                short ThumbX = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbX + (settings.EnableGyroAiming && TriggerPressed ? AngularStick.X : 0)));
+                short ThumbY = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbY + (settings.EnableGyroAiming && TriggerPressed ? AngularStick.Y : 0)));
 
                 vcontroller.SetAxisValue(Xbox360Axis.LeftThumbX, gamepad.LeftThumbX);
                 vcontroller.SetAxisValue(Xbox360Axis.LeftThumbY, gamepad.LeftThumbY);
 
-                vcontroller.SetAxisValue(Xbox360Axis.RightThumbX, Math.Max((short)-32767, Math.Min((short)32767, ThumbX)));
-                vcontroller.SetAxisValue(Xbox360Axis.RightThumbY, Math.Max((short)-32767, Math.Min((short)32767, ThumbY)));
+                vcontroller.SetAxisValue(Xbox360Axis.RightThumbX, ThumbX);
+                vcontroller.SetAxisValue(Xbox360Axis.RightThumbY, ThumbY);
 
                 vcontroller.SetSliderValue(Xbox360Slider.LeftTrigger, gamepad.LeftTrigger);
                 vcontroller.SetSliderValue(Xbox360Slider.RightTrigger, gamepad.RightTrigger);
@@ -201,7 +205,7 @@ namespace AyaGyroAiming
                 vcontroller.SetButtonState(Xbox360Button.Start, gamepad.Buttons.HasFlag(GamepadButtonFlags.Start));
                 vcontroller.SetButtonState(Xbox360Button.Back, gamepad.Buttons.HasFlag(GamepadButtonFlags.Back));
 
-                Thread.Sleep(rate);
+                Thread.Sleep((int)settings.GyroPullRate);
             }
         }
     }

@@ -122,6 +122,8 @@ namespace AyaGyroAiming
                 Y = (float)(settings.GyroStickInvertAxisY ? 1.0f : -1.0f) * (float)GyroY.Average(),
                 Z = (float)(settings.GyroStickInvertAxisZ ? 1.0f : -1.0f) * (float)GyroZ.Average(),
             };
+
+            // shall we take screen ratio in consideration here for X value ? X *= 1.7f (16:9)
             posAverage *= Gamepad.RightThumbDeadZone;
 
             posAverage.X = (float)(Math.Sign(posAverage.X) * Math.Pow(Math.Abs(posAverage.X) / settings.GyroStickRange, settings.GyroStickAggressivity) * settings.GyroStickRange);
