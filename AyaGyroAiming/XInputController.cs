@@ -10,16 +10,20 @@ namespace AyaGyroAiming
 {
     public class XInputController
     {
-        Controller controller;
-        Gamepad gamepad;
-        int rate;
+        private Controller controller;
+        private Gamepad gamepad;
+        private int rate;
 
-        public IXbox360Controller vcontroller;
-        public DualShockPadMeta meta;
+        private UdpStatus MotionStatus;
+        private IXbox360Controller vcontroller;
+        private DualShockPadMeta meta;
 
         public XInputGirometer gyrometer;
+        public XInputAccelerometer accelerometer;
+
         public Vector3 AngularStick;
         public Vector3 AngularVelocity;
+        public Vector3 Acceleration;
 
         [Flags]
         public enum UdpStatus
@@ -28,11 +32,6 @@ namespace AyaGyroAiming
             HasGyroscope = 1,
             HasAccelerometer = 2
         }
-
-        private UdpStatus MotionStatus;
-
-        public XInputAccelerometer accelerometer;
-        public Vector3 Acceleration;
 
         public UserIndex index;
         public bool connected = false;
@@ -118,56 +117,89 @@ namespace AyaGyroAiming
             FlagsHelper.Set(ref MotionStatus, UdpStatus.HasGyroscope);
         }
 
-        void Update()
+        // temp
+        private string TriggerString = "LeftTrigger";
+        private bool TriggerPressed = false;
+        private Settings settings;
+
+        public void UpdateSettings(Settings _settings)
+        {
+            settings = _settings;
+            gyrometer.UpdateSettings(_settings);
+        }
+
+        private bool HasKey()
+        {
+            return TriggerString != "";
+        }
+
+        private void UpdateTrigger()
+        {
+            if (HasKey())
+            {
+                switch (TriggerString)
+                {
+                    case "LeftTrigger":
+                        TriggerPressed = gamepad.LeftTrigger != 0;
+                        break;
+                    case "RightTrigger":
+                        TriggerPressed = gamepad.RightTrigger != 0;
+                        break;
+                }
+            }
+        }
+
+        private void Update()
         {
             while (connected)
             {
                 gamepad = controller.GetState().Gamepad;
 
-
-                // always push values to the upd server ?
-                if (server != null) // && MotionStatus.HasFlag(UdpStatus.HasGyroscope | UdpStatus.HasAccelerometer))
+                if (server != null && MotionStatus.HasFlag(UdpStatus.HasGyroscope) && MotionStatus.HasFlag(UdpStatus.HasAccelerometer))
                 {
                     server.NewReportIncoming(ref meta, this, udpOutBuffers[0]);
-                    FlagsHelper.Unset(ref MotionStatus, UdpStatus.HasAccelerometer | UdpStatus.HasGyroscope);
+                    FlagsHelper.Unset(ref MotionStatus, UdpStatus.HasAccelerometer);
+                    FlagsHelper.Unset(ref MotionStatus, UdpStatus.HasGyroscope);
                 }
 
                 // todo:    allow users to set gyro2stick to either right or left stick
                 //          allow users to set triggers to enable gyro2stick (while aiming in games, etc..)
 
-                if (vcontroller != null && gyrometer != null)
-                {
-                    short ThumbX = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbX + (gyrometer.EnableGyroAiming ? AngularStick.X : 0)));
-                    short ThumbY = (short)Math.Max(-32767, Math.Min(32767, gamepad.RightThumbY + (gyrometer.EnableGyroAiming ? AngularStick.Y : 0)));
+                if (vcontroller == null || gyrometer == null)
+                    continue;
 
-                    vcontroller.SetAxisValue(Xbox360Axis.LeftThumbX, gamepad.LeftThumbX);
-                    vcontroller.SetAxisValue(Xbox360Axis.LeftThumbY, gamepad.LeftThumbY);
+                UpdateTrigger();
 
-                    vcontroller.SetAxisValue(Xbox360Axis.RightThumbX, (short)ThumbX);
-                    vcontroller.SetAxisValue(Xbox360Axis.RightThumbY, (short)ThumbY);
+                short ThumbX = (short)(gamepad.RightThumbX + (settings.EnableGyroAiming && TriggerPressed ? AngularStick.X : 0));
+                short ThumbY = (short)(gamepad.RightThumbY + (settings.EnableGyroAiming && TriggerPressed ? AngularStick.Y : 0));
 
-                    vcontroller.SetSliderValue(Xbox360Slider.LeftTrigger, (byte)gamepad.LeftTrigger);
-                    vcontroller.SetSliderValue(Xbox360Slider.RightTrigger, (byte)gamepad.RightTrigger);
+                vcontroller.SetAxisValue(Xbox360Axis.LeftThumbX, gamepad.LeftThumbX);
+                vcontroller.SetAxisValue(Xbox360Axis.LeftThumbY, gamepad.LeftThumbY);
 
-                    vcontroller.SetButtonState(Xbox360Button.LeftShoulder, gamepad.Buttons.HasFlag(GamepadButtonFlags.LeftShoulder));
-                    vcontroller.SetButtonState(Xbox360Button.RightShoulder, gamepad.Buttons.HasFlag(GamepadButtonFlags.RightShoulder));
+                vcontroller.SetAxisValue(Xbox360Axis.RightThumbX, Math.Max((short)-32767, Math.Min((short)32767, ThumbX)));
+                vcontroller.SetAxisValue(Xbox360Axis.RightThumbY, Math.Max((short)-32767, Math.Min((short)32767, ThumbY)));
 
-                    vcontroller.SetButtonState(Xbox360Button.LeftThumb, gamepad.Buttons.HasFlag(GamepadButtonFlags.LeftThumb));
-                    vcontroller.SetButtonState(Xbox360Button.RightThumb, gamepad.Buttons.HasFlag(GamepadButtonFlags.RightThumb));
+                vcontroller.SetSliderValue(Xbox360Slider.LeftTrigger, gamepad.LeftTrigger);
+                vcontroller.SetSliderValue(Xbox360Slider.RightTrigger, gamepad.RightTrigger);
 
-                    vcontroller.SetButtonState(Xbox360Button.A, gamepad.Buttons.HasFlag(GamepadButtonFlags.A));
-                    vcontroller.SetButtonState(Xbox360Button.B, gamepad.Buttons.HasFlag(GamepadButtonFlags.B));
-                    vcontroller.SetButtonState(Xbox360Button.X, gamepad.Buttons.HasFlag(GamepadButtonFlags.X));
-                    vcontroller.SetButtonState(Xbox360Button.Y, gamepad.Buttons.HasFlag(GamepadButtonFlags.Y));
+                vcontroller.SetButtonState(Xbox360Button.LeftShoulder, gamepad.Buttons.HasFlag(GamepadButtonFlags.LeftShoulder));
+                vcontroller.SetButtonState(Xbox360Button.RightShoulder, gamepad.Buttons.HasFlag(GamepadButtonFlags.RightShoulder));
 
-                    vcontroller.SetButtonState(Xbox360Button.Up, gamepad.Buttons.HasFlag(GamepadButtonFlags.DPadUp));
-                    vcontroller.SetButtonState(Xbox360Button.Down, gamepad.Buttons.HasFlag(GamepadButtonFlags.DPadDown));
-                    vcontroller.SetButtonState(Xbox360Button.Left, gamepad.Buttons.HasFlag(GamepadButtonFlags.DPadLeft));
-                    vcontroller.SetButtonState(Xbox360Button.Right, gamepad.Buttons.HasFlag(GamepadButtonFlags.DPadRight));
+                vcontroller.SetButtonState(Xbox360Button.LeftThumb, gamepad.Buttons.HasFlag(GamepadButtonFlags.LeftThumb));
+                vcontroller.SetButtonState(Xbox360Button.RightThumb, gamepad.Buttons.HasFlag(GamepadButtonFlags.RightThumb));
 
-                    vcontroller.SetButtonState(Xbox360Button.Start, gamepad.Buttons.HasFlag(GamepadButtonFlags.Start));
-                    vcontroller.SetButtonState(Xbox360Button.Back, gamepad.Buttons.HasFlag(GamepadButtonFlags.Back));
-                }
+                vcontroller.SetButtonState(Xbox360Button.A, gamepad.Buttons.HasFlag(GamepadButtonFlags.A));
+                vcontroller.SetButtonState(Xbox360Button.B, gamepad.Buttons.HasFlag(GamepadButtonFlags.B));
+                vcontroller.SetButtonState(Xbox360Button.X, gamepad.Buttons.HasFlag(GamepadButtonFlags.X));
+                vcontroller.SetButtonState(Xbox360Button.Y, gamepad.Buttons.HasFlag(GamepadButtonFlags.Y));
+
+                vcontroller.SetButtonState(Xbox360Button.Up, gamepad.Buttons.HasFlag(GamepadButtonFlags.DPadUp));
+                vcontroller.SetButtonState(Xbox360Button.Down, gamepad.Buttons.HasFlag(GamepadButtonFlags.DPadDown));
+                vcontroller.SetButtonState(Xbox360Button.Left, gamepad.Buttons.HasFlag(GamepadButtonFlags.DPadLeft));
+                vcontroller.SetButtonState(Xbox360Button.Right, gamepad.Buttons.HasFlag(GamepadButtonFlags.DPadRight));
+
+                vcontroller.SetButtonState(Xbox360Button.Start, gamepad.Buttons.HasFlag(GamepadButtonFlags.Start));
+                vcontroller.SetButtonState(Xbox360Button.Back, gamepad.Buttons.HasFlag(GamepadButtonFlags.Back));
 
                 Thread.Sleep(rate);
             }

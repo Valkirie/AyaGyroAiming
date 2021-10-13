@@ -14,6 +14,7 @@ using System.Text.Json;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Management;
 
 namespace AyaGyroAiming
 {
@@ -46,18 +47,11 @@ namespace AyaGyroAiming
         static PhysicalAddress PadMacAddress = new PhysicalAddress(new byte[] { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 });
 
         // settings vars
-        static bool EnableGyroAiming;
-        static uint GyroPullRate;
-        static uint GyroMaxSample;
-        static float GyroStickMagnitude;
-        static float GyroStickThreshold;
-        static float GyroStickRange;
-        static bool GyroStickInvertAxisX;
-        static bool GyroStickInvertAxisY;
-        static bool GyroStickInvertAxisZ;
-        static float GyroStickAggressivity;
+        static Settings settings = new Settings();
         static int UdpPort;
         static StringCollection HidHideDevices;
+
+        static HidHide hidder;
 
         static void Main()
         {
@@ -68,11 +62,11 @@ namespace AyaGyroAiming
 
             // paths
             CurrentPath = Directory.GetCurrentDirectory();
-            CurrentPathIni = Path.Combine(CurrentPath, "inis");
+            CurrentPathIni = Path.Combine(CurrentPath, "profiles");
             CurrentPathCli = @"C:\Program Files\Nefarius Software Solutions e.U\HidHideCLI\HidHideCLI.exe";
 
-            // settings
-            HidHideDevices = Properties.Settings.Default.HidHideDevices;
+            // default settings
+            UpdateSettings();
 
             if (!File.Exists(CurrentPathCli))
             {
@@ -82,10 +76,28 @@ namespace AyaGyroAiming
             }
 
             // initialize HidHide
-            HidHide hidder = new HidHide(CurrentPathCli);
+            hidder = new HidHide(CurrentPathCli);
             hidder.RegisterSelf();
-            foreach (Device d in hidder.GetDevices().Where(a => HidHideDevices.Contains(a.product)))
-                hidder.HideDevice(d.deviceInstancePath);
+
+            // todo : store default baseContainerDeviceInstancePath somewhere
+            foreach (Device d in hidder.GetDevices().Where(a => a.gamingDevice))
+            {
+                string query = $"SELECT * FROM Win32_PnPEntity WHERE ClassGuid = \"{d.baseContainerClassGuid}\"";
+
+                var moSearch = new ManagementObjectSearcher(query);
+                var moCollection = moSearch.Get();
+
+                foreach (ManagementObject mo in moCollection)
+                {
+                    foreach (var item in mo.Properties)
+                        if (item.Name == "DeviceID")
+                        {
+                            hidder.HideDevice((string)item.Value); // d.baseContainerDeviceInstancePath);
+                            break;
+                        }
+                }
+            }
+
             hidder.SetCloaking(true);
 
             // initialize ViGem
@@ -98,7 +110,7 @@ namespace AyaGyroAiming
                 {
                     Console.WriteLine("No Virtual controller detected. Application will stop.");
                     Console.ReadLine();
-                    return;
+                    Environment.Exit(0);
                 }
             }
             catch (Exception ex)
@@ -108,10 +120,6 @@ namespace AyaGyroAiming
                 return;
             }
 
-            // default settings
-            UdpPort = Properties.Settings.Default.UdpPort; // 26760
-            UpdateSettings();
-
             Console.WriteLine($"AyaGyroAiming ({fileVersionInfo.ProductVersion})");
             Console.WriteLine();
 
@@ -119,31 +127,31 @@ namespace AyaGyroAiming
             SetConsoleCtrlHandler(CurrentHandler, true);
 
             // prepare physical controller
-            PhysicalController = new XInputController(0, 10, PadMacAddress);
+            PhysicalController = new XInputController(0, (int)settings.GyroPullRate, PadMacAddress);
 
             if (PhysicalController == null)
             {
                 Console.WriteLine("No physical controller detected. Application will stop.");
                 Console.ReadLine();
-                return;
+                Environment.Exit(0);
             }
 
             // default is 10ms rating and 10 samples
-            Gyrometer = new XInputGirometer(GyroPullRate, GyroMaxSample, GyroStickMagnitude, GyroStickThreshold, GyroStickAggressivity, GyroStickRange, GyroStickInvertAxisX, GyroStickInvertAxisY, GyroStickInvertAxisZ);
+            Gyrometer = new XInputGirometer(settings);
             if (Gyrometer.sensor == null)
             {
                 Console.WriteLine("No Gyrometer detected. Application will stop.");
                 Console.ReadLine();
-                return;
+                Environment.Exit(0);
             }
 
             // default is 10ms rating
-            Accelerometer = new XInputAccelerometer(GyroPullRate);
+            Accelerometer = new XInputAccelerometer(settings);
             if (Accelerometer.sensor == null)
             {
                 Console.WriteLine("No Accelerometer detected. Application will stop.");
                 Console.ReadLine();
-                return;
+                Environment.Exit(0);
             }
 
             // start UDP server (temp)
@@ -244,20 +252,24 @@ namespace AyaGyroAiming
 
         static void UpdateSettings()
         {
-            EnableGyroAiming = Properties.Settings.Default.EnableGyroAiming;
-            GyroPullRate = Properties.Settings.Default.GyroPullRate;
-            GyroMaxSample = Properties.Settings.Default.GyroMaxSample;
-            GyroStickMagnitude = Properties.Settings.Default.GyroStickMagnitude;
-            GyroStickThreshold = Properties.Settings.Default.GyroStickThreshold;
-            GyroStickAggressivity = Properties.Settings.Default.GyroStickAggressivity;
-            GyroStickRange = Properties.Settings.Default.GyroStickRange;
-            GyroStickInvertAxisX = Properties.Settings.Default.GyroStickInvertAxisX;
-            GyroStickInvertAxisY = Properties.Settings.Default.GyroStickInvertAxisY;
-            GyroStickInvertAxisZ = Properties.Settings.Default.GyroStickInvertAxisZ;
+            settings.EnableGyroAiming = Properties.Settings.Default.EnableGyroAiming;
+            settings.GyroPullRate = Properties.Settings.Default.GyroPullRate;
+            settings.GyroMaxSample = Properties.Settings.Default.GyroMaxSample;
+            settings.GyroStickMagnitude = Properties.Settings.Default.GyroStickMagnitude;
+            settings.GyroStickThreshold = Properties.Settings.Default.GyroStickThreshold;
+            settings.GyroStickAggressivity = Properties.Settings.Default.GyroStickAggressivity;
+            settings.GyroStickRange = Properties.Settings.Default.GyroStickRange;
+            settings.GyroStickInvertAxisX = Properties.Settings.Default.GyroStickInvertAxisX;
+            settings.GyroStickInvertAxisY = Properties.Settings.Default.GyroStickInvertAxisY;
+            settings.GyroStickInvertAxisZ = Properties.Settings.Default.GyroStickInvertAxisZ;
+            settings.TriggerString = Properties.Settings.Default.TriggerString;
+
+            UdpPort = Properties.Settings.Default.UdpPort; // 26760
+            HidHideDevices = Properties.Settings.Default.HidHideDevices;
 
             // update controller settings
             if (PhysicalController != null)
-                PhysicalController.gyrometer.UpdateSettings(EnableGyroAiming, GyroStickMagnitude, GyroStickThreshold, GyroStickAggressivity, GyroStickRange, GyroStickInvertAxisX, GyroStickInvertAxisY, GyroStickInvertAxisZ);
+                PhysicalController.UpdateSettings(settings);
         }
 
         static void MonitorProcess()
@@ -277,27 +289,16 @@ namespace AyaGyroAiming
                     try
                     {
                         FileInfo CurrentFile = new FileInfo(CurrentProcess.MainModule.FileName);
-                        string filename = Path.Combine(CurrentPathIni, CurrentFile.Name.Replace("exe", "ini")).ToLower();
+                        string filename = Path.Combine(CurrentPathIni, CurrentFile.Name.Replace("exe", "json")).ToLower();
 
                         // check if a specific profile exists for the foreground executable
                         if (File.Exists(filename))
                         {
-                            IniFile MyIni = new IniFile(filename);
-
-                            bool EnableGyroAiming = MyIni.ReadBool("EnableGyroAiming", "Gyroscope");
-
-                            float GyroStickMagnitude = MyIni.ReadFloat("GyroStickMagnitude", "Gyroscope");
-                            float GyroStickThreshold = MyIni.ReadFloat("GyroStickThreshold", "Gyroscope");
-                            float GyroStickAggressivity = MyIni.ReadFloat("GyroStickAggressivity", "Gyroscope");
-                            float GyroStickRange = MyIni.ReadFloat("GyroStickRange", "Gyroscope");
-
-                            bool GyroStickInvertAxisX = MyIni.ReadBool("GyroStickInvertAxisX", "Gyroscope");
-                            bool GyroStickInvertAxisY = MyIni.ReadBool("GyroStickInvertAxisX", "Gyroscope");
-                            bool GyroStickInvertAxisZ = MyIni.ReadBool("GyroStickInvertAxisX", "Gyroscope");
+                            string jsonString = File.ReadAllText(filename);
 
                             // update controller settings
-                            if (PhysicalController != null)
-                                PhysicalController.gyrometer.UpdateSettings(EnableGyroAiming, GyroStickMagnitude, GyroStickThreshold, GyroStickAggressivity, GyroStickRange, GyroStickInvertAxisX, GyroStickInvertAxisY, GyroStickInvertAxisZ);
+                            Settings settings = JsonSerializer.Deserialize<Settings>(jsonString);
+                            PhysicalController.UpdateSettings(settings);
 
                             Console.WriteLine($"Gyroscope settings applied for {CurrentFile.Name}");
                         }
@@ -315,9 +316,14 @@ namespace AyaGyroAiming
 
         static bool ConsoleEventCallback(int eventType)
         {
-            if (VirtualXBOX != null)
+            try
+            {
                 VirtualXBOX.Disconnect();
+            }
+            catch (Exception) { }
             IsRunning = false;
+            hidder.SetCloaking(false);
+
             return true;
         }
     }

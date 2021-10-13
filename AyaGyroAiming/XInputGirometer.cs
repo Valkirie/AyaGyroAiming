@@ -32,56 +32,36 @@ namespace AyaGyroAiming
         const float GyroStickAlpha = 0.2f;
 
         // Settings
-        float GyroStickMagnitude;
-        float GyroStickThreshold;
-        float GyroStickAggressivity;
-        float GyroStickRange;
-        bool GyroStickInvertAxisX;
-        bool GyroStickInvertAxisY;
-        bool GyroStickInvertAxisZ;
-        public bool EnableGyroAiming;
+        Settings settings;
 
         public event XInputGirometerReadingChangedEventHandler ReadingChanged;
         public delegate void XInputGirometerReadingChangedEventHandler(Object sender, XInputGirometerReadingChangedEventArgs e);
 
-        public XInputGirometer(uint _rate, uint _size, float _magnitude, float _threshold, float _aggro, float _range, bool _invX, bool _invY, bool _invZ)
+        public XInputGirometer(Settings _settings)
         {
             sensor = Gyrometer.GetDefault();
             if (sensor != null)
             {
-                GyroStickMagnitude = _magnitude;
-                GyroStickThreshold = _threshold;
-                GyroStickAggressivity = _aggro;
-                GyroStickRange = _range;
-                GyroStickInvertAxisX = _invX;
-                GyroStickInvertAxisY = _invY;
-                GyroStickInvertAxisZ = _invZ;
+                settings = _settings;
 
-                poolsize = _size;
-                GyroX = new float[_size];
-                GyroY = new float[_size];
-                GyroZ = new float[_size];
+                poolsize = settings.GyroMaxSample;
+                GyroX = new float[poolsize];
+                GyroY = new float[poolsize];
+                GyroZ = new float[poolsize];
 
-                sensor.ReportInterval = _rate < sensor.MinimumReportInterval ? sensor.MinimumReportInterval : _rate;
+                sensor.ReportInterval = settings.GyroPullRate < sensor.MinimumReportInterval ? sensor.MinimumReportInterval : settings.GyroPullRate;
                 Console.WriteLine($"Gyrometer initialised.");
                 Console.WriteLine($"Gyrometer report interval set to {sensor.ReportInterval}ms");
-                Console.WriteLine($"Gyrometer sample pool size set to: {_size}");
+                Console.WriteLine($"Gyrometer sample pool size set to: {poolsize}");
                 Console.WriteLine();
 
                 sensor.ReadingChanged += GyroReadingChanged;
             }
         }
 
-        public void UpdateSettings(bool _enable, float _magnitude, float _threshold, float _aggro, float _range, bool _invX, bool _invY, bool _invZ)
+        public void UpdateSettings(Settings _settings)
         {
-            EnableGyroAiming = _enable;
-            GyroStickMagnitude = _magnitude;
-            GyroStickThreshold = _threshold;
-            GyroStickAggressivity = _aggro;
-            GyroStickRange = _range;
-            GyroStickInvertAxisX = _invX;
-            GyroStickInvertAxisY = _invY;
-            GyroStickInvertAxisZ = _invZ;
+            settings = _settings;
         }
 
         static Vector3 SmoothReading(Vector3 input, float GyroStickAlpha)
@@ -127,26 +107,26 @@ namespace AyaGyroAiming
 
             Vector3 input = new Vector3((float)reading.AngularVelocityY, (float)reading.AngularVelocityX, (float)reading.AngularVelocityZ);
             input = SmoothReading(input, GyroStickAlpha);
-            input = NormalizeReading(input, GyroStickMagnitude, GyroStickThreshold);
+            input = NormalizeReading(input, settings.GyroStickMagnitude, settings.GyroStickThreshold);
 
-            GyroX[poolidx] = Math.Max(-GyroStickRange, Math.Min(GyroStickRange, input.X));
-            GyroY[poolidx] = Math.Max(-GyroStickRange, Math.Min(GyroStickRange, input.Y));
-            GyroZ[poolidx] = Math.Max(-GyroStickRange, Math.Min(GyroStickRange, input.Z));
+            GyroX[poolidx] = Math.Max(-settings.GyroStickRange, Math.Min(settings.GyroStickRange, input.X));
+            GyroY[poolidx] = Math.Max(-settings.GyroStickRange, Math.Min(settings.GyroStickRange, input.Y));
+            GyroZ[poolidx] = Math.Max(-settings.GyroStickRange, Math.Min(settings.GyroStickRange, input.Z));
             poolidx++;
             poolidx %= poolsize;
 
             // scale value
             Vector3 posAverage = new Vector3()
             {
-                X = (float)(GyroStickInvertAxisX ? 1.0f : -1.0f) * (float)GyroX.Average(),
-                Y = (float)(GyroStickInvertAxisY ? 1.0f : -1.0f) * (float)GyroY.Average(),
-                Z = (float)(GyroStickInvertAxisZ ? 1.0f : -1.0f) * (float)GyroZ.Average(),
+                X = (float)(settings.GyroStickInvertAxisX ? 1.0f : -1.0f) * (float)GyroX.Average(),
+                Y = (float)(settings.GyroStickInvertAxisY ? 1.0f : -1.0f) * (float)GyroY.Average(),
+                Z = (float)(settings.GyroStickInvertAxisZ ? 1.0f : -1.0f) * (float)GyroZ.Average(),
             };
             posAverage *= Gamepad.RightThumbDeadZone;
 
-            posAverage.X = (float)(Math.Sign(posAverage.X) * Math.Pow(Math.Abs(posAverage.X) / GyroStickRange, GyroStickAggressivity) * GyroStickRange);
-            posAverage.Y = (float)(Math.Sign(posAverage.Y) * Math.Pow(Math.Abs(posAverage.Y) / GyroStickRange, GyroStickAggressivity) * GyroStickRange);
-            posAverage.Z = (float)(Math.Sign(posAverage.Z) * Math.Pow(Math.Abs(posAverage.Z) / GyroStickRange, GyroStickAggressivity) * GyroStickRange);
+            posAverage.X = (float)(Math.Sign(posAverage.X) * Math.Pow(Math.Abs(posAverage.X) / settings.GyroStickRange, settings.GyroStickAggressivity) * settings.GyroStickRange);
+            posAverage.Y = (float)(Math.Sign(posAverage.Y) * Math.Pow(Math.Abs(posAverage.Y) / settings.GyroStickRange, settings.GyroStickAggressivity) * settings.GyroStickRange);
+            posAverage.Z = (float)(Math.Sign(posAverage.Z) * Math.Pow(Math.Abs(posAverage.Z) / settings.GyroStickRange, settings.GyroStickAggressivity) * settings.GyroStickRange);
 
             // raise event
             XInputGirometerReadingChangedEventArgs newargs = new XInputGirometerReadingChangedEventArgs()

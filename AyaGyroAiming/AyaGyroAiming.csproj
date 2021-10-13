@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="System.Management" />
     <Reference Include="Windows">
       <HintPath>ref\Windows.winmd</HintPath>
       <IsWinMDFile>true</IsWinMDFile>
@@ -39,16 +40,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="inis\cemu.ini">
+    <None Update="profiles\cemu.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="inis\example.ini">
+    <None Update="profiles\example.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="inis\ryujinx.ini">
+    <None Update="profiles\ryujinx.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="inis\yuzu.ini">
+    <None Update="profiles\yuzu.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Properties\Settings.settings">
