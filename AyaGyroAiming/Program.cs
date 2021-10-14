@@ -245,6 +245,9 @@ namespace AyaGyroAiming
                                 case TypeCode.UInt64:
                                     Properties.Settings.Default[variable] = uint.Parse(array[2]);
                                     break;
+                                default:
+                                    Properties.Settings.Default[variable] = array[2];
+                                    break;
                             }
                             Console.WriteLine($"{variable} set to: {array[2]}");
                             Properties.Settings.Default.Save();
