@@ -292,7 +292,7 @@ namespace AyaGyroAiming
             settings.TriggerString = Properties.Settings.Default.TriggerString;
 
             UdpPort = Properties.Settings.Default.UdpPort; // 26760
-            HidHideDevices = Properties.Settings.Default.HidHideDevices;
+            HidHideDevices = Properties.Settings.Default.HidHideDevices; // not yet implemented
             EnableScreenRatio = Properties.Settings.Default.EnableScreenRatio;
 
             // update controller settings
@@ -312,30 +312,25 @@ namespace AyaGyroAiming
                     if (GetWindowThreadProcessId(hWnd, out processId) == 0)
                         continue;
 
-                    Process CurrentProcess = Process.GetProcessById((int)processId);
-
                     try
                     {
-                        Debug.WriteLine(CurrentProcess.ProcessName);
-                        string filename = $"{CurrentPathIni}\\{CurrentProcess.ProcessName}.json";
+                        Process CurrentProcess = Process.GetProcessById((int)processId);
 
                         // check if a specific profile exists for the foreground executable
+                        string filename = $"{CurrentPathIni}\\{CurrentProcess.ProcessName}.json";
                         if (File.Exists(filename))
                         {
                             string jsonString = File.ReadAllText(filename);
+                            Settings settings = JsonSerializer.Deserialize<Settings>(jsonString);
 
                             // update controller settings
-                            Settings settings = JsonSerializer.Deserialize<Settings>(jsonString);
                             PhysicalController.UpdateSettings(settings);
-
                             Console.WriteLine($"Gyroscope settings applied for {CurrentProcess.ProcessName}");
                         }
                         else
                             UpdateSettings();
                     }
-                    catch (Exception ex) {
-                        Debug.WriteLine(ex.Message);
-                    }
+                    catch (Exception) { }
 
                     CurrenthWnd = hWnd;
                 }
@@ -348,9 +343,11 @@ namespace AyaGyroAiming
         {
             try
             {
-                VirtualXBOX.Disconnect();
+                if (VirtualXBOX != null)
+                    VirtualXBOX.Disconnect();
             }
             catch (Exception) { }
+
             IsRunning = false;
             hidder.SetCloaking(false);
 
