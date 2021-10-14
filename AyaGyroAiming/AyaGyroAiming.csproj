@@ -29,6 +29,7 @@
 
   <ItemGroup>
     <Reference Include="System.Management" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="Windows">
       <HintPath>ref\Windows.winmd</HintPath>
       <IsWinMDFile>true</IsWinMDFile>

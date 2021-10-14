@@ -15,6 +15,8 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Management;
+using System.Windows.Forms;
+using System.Drawing;
 
 namespace AyaGyroAiming
 {
@@ -50,6 +52,7 @@ namespace AyaGyroAiming
         static Settings settings = new Settings();
         static int UdpPort;
         static StringCollection HidHideDevices;
+        static bool EnableScreenRatio;
 
         static HidHide hidder;
 
@@ -68,8 +71,12 @@ namespace AyaGyroAiming
             CurrentPathIni = Path.Combine(CurrentPath, "profiles");
             CurrentPathCli = @"C:\Program Files\Nefarius Software Solutions e.U\HidHideCLI\HidHideCLI.exe";
 
-            // default settings
+            // settings
             UpdateSettings();
+
+            // resolution settings
+            Rectangle resolution = Screen.PrimaryScreen.Bounds;
+            float ratio = EnableScreenRatio ? ((float)resolution.Width / (float)resolution.Height) : 1.0f;
 
             if (!File.Exists(CurrentPathCli))
             {
@@ -147,7 +154,7 @@ namespace AyaGyroAiming
             }
 
             // default is 10ms rating and 10 samples
-            Gyrometer = new XInputGirometer(settings);
+            Gyrometer = new XInputGirometer(settings, ratio);
             if (Gyrometer.sensor == null)
             {
                 Console.WriteLine("No Gyrometer detected. Application will stop.");
@@ -283,6 +290,7 @@ namespace AyaGyroAiming
 
             UdpPort = Properties.Settings.Default.UdpPort; // 26760
             HidHideDevices = Properties.Settings.Default.HidHideDevices;
+            EnableScreenRatio = Properties.Settings.Default.EnableScreenRatio;
 
             // update controller settings
             if (PhysicalController != null)

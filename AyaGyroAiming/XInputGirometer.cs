@@ -27,9 +27,10 @@ namespace AyaGyroAiming
         Vector3[] gyroPool;
 
         // const
-        const float GyroStickAlpha = 0.2f;
-        const float GyroStickMagnitude = 3.5f;
-        const float GyroStickThreshold = 0.1f;
+        float GyroStickAlpha = 0.2f;
+        float GyroStickMagnitude = 3.5f;
+        float GyroStickThreshold = 0.1f;
+        float GyroStickRatio = 1.7f;
 
         // Settings
         Settings settings;
@@ -37,12 +38,13 @@ namespace AyaGyroAiming
         public event XInputGirometerReadingChangedEventHandler ReadingChanged;
         public delegate void XInputGirometerReadingChangedEventHandler(Object sender, XInputGirometerReadingChangedEventArgs e);
 
-        public XInputGirometer(Settings _settings)
+        public XInputGirometer(Settings _settings, float _ratio)
         {
             sensor = Gyrometer.GetDefault();
             if (sensor != null)
             {
                 settings = _settings;
+                GyroStickRatio = _ratio;
 
                 poolsize = settings.GyroMaxSample;
                 gyroPool = new Vector3[poolsize];
@@ -119,9 +121,8 @@ namespace AyaGyroAiming
                 Z = (float)(settings.GyroStickInvertAxisZ ? 1.0f : -1.0f) * (float)gyroPool.Select(a => a.Z).Average(),
             };
 
-            // shall we take screen ratio in consideration here for X value ? X *= 1.7f (16:9)
             posAverage *= settings.GyroStickRange;
-            posAverage.X *= 1.7f;
+            posAverage.X *= GyroStickRatio; // take screen ratio in consideration 1.7f (16:9)
 
             posAverage.X = (float)(Math.Sign(posAverage.X) * Math.Pow(Math.Abs(posAverage.X) / Gamepad.RightThumbDeadZone, settings.GyroStickAggressivity) * Gamepad.RightThumbDeadZone);
             posAverage.Y = (float)(Math.Sign(posAverage.Y) * Math.Pow(Math.Abs(posAverage.Y) / Gamepad.RightThumbDeadZone, settings.GyroStickAggressivity) * Gamepad.RightThumbDeadZone);
