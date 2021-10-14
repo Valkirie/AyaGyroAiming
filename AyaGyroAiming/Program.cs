@@ -1,22 +1,21 @@
 ﻿using Nefarius.ViGEm.Client;
 using Nefarius.ViGEm.Client.Targets;
 using System;
+using System.Collections.Specialized;
 using System.Configuration;
 using System.Diagnostics;
+using System.Drawing;
 using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Management;
 using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 using System.Text.Json;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
-using System.Management;
+using System.Threading;
 using System.Windows.Forms;
-using System.Drawing;
 
 namespace AyaGyroAiming
 {
