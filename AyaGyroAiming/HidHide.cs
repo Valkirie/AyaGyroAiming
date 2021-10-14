@@ -11,48 +11,43 @@ namespace AyaGyroAiming
 {
     class HidHide
     {
-        private string path;
+        private Process process;
+
         public HidHide(string _path)
         {
-            path = _path;
+            process = new Process
+            {
+                StartInfo =
+                {
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    FileName = _path
+                }
+            };
         }
 
         public void RegisterApplication(string path)
         {
-            Process process = new Process
-            {
-                StartInfo =
-                {
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    FileName = path,
-                    Arguments = $"--app-reg \"{path}\""
-                }
-            };
-            process.Start();
-            process.WaitForExit();
-        }
-
-        public List<Device> GetDevices()
-        {
-            Process process = new Process
-            {
-                StartInfo =
-                {
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    FileName = path,
-                    Arguments = $"--dev-gaming"
-                }
-            };
+            process.StartInfo.Arguments = $"--app-reg \"{path}\"";
             process.Start();
             process.WaitForExit();
 
             string jsonString = process.StandardOutput.ReadToEnd();
+        }
+
+        public List<Device> GetDevices()
+        {
+            process.StartInfo.Arguments = $"--dev-gaming";
+            process.Start();
+            process.WaitForExit();
+
+            string jsonString = process.StandardOutput.ReadToEnd();
+
+            if (jsonString == "")
+                return new List<Device>();
+
             jsonString = jsonString.Replace("\"friendlyName\" : ", "\"friendlyName\" : \"");
             jsonString = jsonString.Replace("[ {", "{");
             jsonString = jsonString.Replace(" } ] } ] ", " } ] }");
@@ -64,56 +59,29 @@ namespace AyaGyroAiming
 
         public void SetCloaking(bool status)
         {
-            Process process = new Process
-            {
-                StartInfo =
-                {
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    FileName = path,
-                    Arguments = status ? $"--cloak-on" : $"--cloak-off"
-                }
-            };
+            process.StartInfo.Arguments = status ? $"--cloak-on" : $"--cloak-off";
             process.Start();
             process.WaitForExit();
+
+            string jsonString = process.StandardOutput.ReadToEnd();
         }
 
         public void HideDevice(string deviceInstancePath)
         {
-            Process process = new Process
-            {
-                StartInfo =
-                {
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    FileName = path,
-                    Arguments = $"--dev-hide \"{deviceInstancePath}\""
-                }
-            };
+            process.StartInfo.Arguments = $"--dev-hide \"{deviceInstancePath}\"";
             process.Start();
             process.WaitForExit();
+
+            string jsonString = process.StandardOutput.ReadToEnd();
         }
 
         public void UnHideDevice(string deviceInstancePath)
         {
-            Process process = new Process
-            {
-                StartInfo =
-                {
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    FileName = path,
-                    Arguments = $"--dev-unhide \"{deviceInstancePath}\""
-                }
-            };
+            process.StartInfo.Arguments = $"--dev-unhide \"{deviceInstancePath}\"";
             process.Start();
             process.WaitForExit();
+
+            string jsonString = process.StandardOutput.ReadToEnd();
         }
     }
 }
