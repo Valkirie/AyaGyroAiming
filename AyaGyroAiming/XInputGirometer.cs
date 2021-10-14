@@ -120,11 +120,12 @@ namespace AyaGyroAiming
             };
 
             // shall we take screen ratio in consideration here for X value ? X *= 1.7f (16:9)
-            posAverage *= Gamepad.RightThumbDeadZone;
+            posAverage *= settings.GyroStickRange;
+            posAverage.X *= 1.7f;
 
-            posAverage.X = (float)(Math.Sign(posAverage.X) * Math.Pow(Math.Abs(posAverage.X) / settings.GyroStickRange, settings.GyroStickAggressivity) * settings.GyroStickRange);
-            posAverage.Y = (float)(Math.Sign(posAverage.Y) * Math.Pow(Math.Abs(posAverage.Y) / settings.GyroStickRange, settings.GyroStickAggressivity) * settings.GyroStickRange);
-            posAverage.Z = (float)(Math.Sign(posAverage.Z) * Math.Pow(Math.Abs(posAverage.Z) / settings.GyroStickRange, settings.GyroStickAggressivity) * settings.GyroStickRange);
+            posAverage.X = (float)(Math.Sign(posAverage.X) * Math.Pow(Math.Abs(posAverage.X) / Gamepad.RightThumbDeadZone, settings.GyroStickAggressivity) * Gamepad.RightThumbDeadZone);
+            posAverage.Y = (float)(Math.Sign(posAverage.Y) * Math.Pow(Math.Abs(posAverage.Y) / Gamepad.RightThumbDeadZone, settings.GyroStickAggressivity) * Gamepad.RightThumbDeadZone);
+            posAverage.Z = (float)(Math.Sign(posAverage.Z) * Math.Pow(Math.Abs(posAverage.Z) / Gamepad.RightThumbDeadZone, settings.GyroStickAggressivity) * Gamepad.RightThumbDeadZone);
 
             // raise event
             XInputGirometerReadingChangedEventArgs newargs = new XInputGirometerReadingChangedEventArgs()

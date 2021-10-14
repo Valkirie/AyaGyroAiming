@@ -9,7 +9,7 @@
       <Value Profile="(Default)">1</Value>
     </Setting>
     <Setting Name="GyroStickRange" Type="System.Single" Scope="User">
-      <Value Profile="(Default)">9000</Value>
+      <Value Profile="(Default)">10000</Value>
     </Setting>
     <Setting Name="GyroStickInvertAxisX" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
