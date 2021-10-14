@@ -28,8 +28,7 @@ namespace AyaGyroAiming
             process.StartInfo.Arguments = $"--app-reg \"{path}\"";
             process.Start();
             process.WaitForExit();
-
-            string jsonString = process.StandardOutput.ReadToEnd();
+            process.StandardOutput.ReadToEnd();
         }
 
         public List<Device> GetDevices()
@@ -57,8 +56,7 @@ namespace AyaGyroAiming
             process.StartInfo.Arguments = status ? $"--cloak-on" : $"--cloak-off";
             process.Start();
             process.WaitForExit();
-
-            string jsonString = process.StandardOutput.ReadToEnd();
+            process.StandardOutput.ReadToEnd();
         }
 
         public void HideDevice(string deviceInstancePath)
@@ -66,8 +64,7 @@ namespace AyaGyroAiming
             process.StartInfo.Arguments = $"--dev-hide \"{deviceInstancePath}\"";
             process.Start();
             process.WaitForExit();
-
-            string jsonString = process.StandardOutput.ReadToEnd();
+            process.StandardOutput.ReadToEnd();
         }
 
         public void UnHideDevice(string deviceInstancePath)
@@ -75,8 +72,7 @@ namespace AyaGyroAiming
             process.StartInfo.Arguments = $"--dev-unhide \"{deviceInstancePath}\"";
             process.Start();
             process.WaitForExit();
-
-            string jsonString = process.StandardOutput.ReadToEnd();
+            process.StandardOutput.ReadToEnd();
         }
     }
 }

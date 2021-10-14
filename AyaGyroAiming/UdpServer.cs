@@ -221,11 +221,9 @@ namespace AyaGyroAiming
             int currIdx = BeginPacket(packetData, reqProtocolVersion);
             Array.Copy(usefulData, 0, packetData, currIdx, usefulData.Length);
             FinishPacket(packetData);
-
-            //try { udpSock.SendTo(packetData, clientEP); }
-            int temp = 0;
             poolLock.EnterWriteLock();
-            temp = listInd;
+            //try { udpSock.SendTo(packetData, clientEP); }
+            int temp = listInd;
             listInd = ++listInd % ARG_BUFFER_LEN;
             SocketAsyncEventArgs args = argsList[temp];
             poolLock.ExitWriteLock();
@@ -678,7 +676,6 @@ namespace AyaGyroAiming
             }
 
             clientsList.Clear();
-            clientsList = null;
         }
     }
 }

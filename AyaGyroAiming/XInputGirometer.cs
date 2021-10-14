@@ -89,10 +89,9 @@ namespace AyaGyroAiming
             float vector = (magnitude > 0 ? magnitude : 1);
             var direction = input / vector;
 
-            float normalizedMagnitude = 0.0f;
             if (magnitude - threshold > 0)
             {
-                normalizedMagnitude = Math.Min((magnitude - threshold) / (short.MaxValue - threshold), 1);
+                float normalizedMagnitude = Math.Min((magnitude - threshold) / (short.MaxValue - threshold), 1);
                 normalizedMagnitude = normalizedMagnitude < alpha ? alpha : normalizedMagnitude;
 
                 return direction * normalizedMagnitude;
