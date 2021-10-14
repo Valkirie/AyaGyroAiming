@@ -9,8 +9,6 @@ namespace AyaGyroAiming
     public class Settings
     {
         public bool EnableGyroAiming { get; set; }
-        public float GyroStickMagnitude { get; set; }
-        public float GyroStickThreshold { get; set; }
         public float GyroStickAggressivity { get; set; }
         public float GyroStickRange { get; set; }
         public bool GyroStickInvertAxisX { get; set; }

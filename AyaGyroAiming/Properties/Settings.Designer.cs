@@ -49,30 +49,6 @@ namespace AyaGyroAiming.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("3.5")]
-        public float GyroStickMagnitude {
-            get {
-                return ((float)(this["GyroStickMagnitude"]));
-            }
-            set {
-                this["GyroStickMagnitude"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0.1")]
-        public float GyroStickThreshold {
-            get {
-                return ((float)(this["GyroStickThreshold"]));
-            }
-            set {
-                this["GyroStickThreshold"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("9000")]
         public float GyroStickRange {
             get {

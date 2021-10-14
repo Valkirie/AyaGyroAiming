@@ -274,8 +274,6 @@ namespace AyaGyroAiming
             settings.EnableGyroAiming = Properties.Settings.Default.EnableGyroAiming;
             settings.GyroPullRate = Properties.Settings.Default.GyroPullRate;
             settings.GyroMaxSample = Properties.Settings.Default.GyroMaxSample;
-            settings.GyroStickMagnitude = Properties.Settings.Default.GyroStickMagnitude;
-            settings.GyroStickThreshold = Properties.Settings.Default.GyroStickThreshold;
             settings.GyroStickAggressivity = Properties.Settings.Default.GyroStickAggressivity;
             settings.GyroStickRange = Properties.Settings.Default.GyroStickRange;
             settings.GyroStickInvertAxisX = Properties.Settings.Default.GyroStickInvertAxisX;

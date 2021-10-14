@@ -23,13 +23,13 @@ namespace AyaGyroAiming
         public uint poolsize;
 
         // Compute & Maths
-        uint poolidx;
-        float[] GyroX;
-        float[] GyroY;
-        float[] GyroZ;
+        uint gyroPoolIdx;
+        Vector3[] gyroPool;
 
         // const
         const float GyroStickAlpha = 0.2f;
+        const float GyroStickMagnitude = 3.5f;
+        const float GyroStickThreshold = 0.1f;
 
         // Settings
         Settings settings;
@@ -45,9 +45,7 @@ namespace AyaGyroAiming
                 settings = _settings;
 
                 poolsize = settings.GyroMaxSample;
-                GyroX = new float[poolsize];
-                GyroY = new float[poolsize];
-                GyroZ = new float[poolsize];
+                gyroPool = new Vector3[poolsize];
 
                 sensor.ReportInterval = settings.GyroPullRate < sensor.MinimumReportInterval ? sensor.MinimumReportInterval : settings.GyroPullRate;
                 Console.WriteLine($"Gyrometer initialised.");
@@ -84,7 +82,7 @@ namespace AyaGyroAiming
             return hipass;
         }
 
-        static Vector3 NormalizeReading(Vector3 input, float magnitude, float threshold)
+        static Vector3 NormalizeReading(Vector3 input, float magnitude, float threshold, float alpha)
         {
             float vector = (magnitude > 0 ? magnitude : 1);
             var direction = input / vector;
@@ -93,7 +91,7 @@ namespace AyaGyroAiming
             if (magnitude - threshold > 0)
             {
                 normalizedMagnitude = Math.Min((magnitude - threshold) / (short.MaxValue - threshold), 1);
-                normalizedMagnitude = normalizedMagnitude < 0.2f ? 0.2f : normalizedMagnitude;
+                normalizedMagnitude = normalizedMagnitude < alpha ? alpha : normalizedMagnitude;
 
                 return direction * normalizedMagnitude;
             }
@@ -107,20 +105,18 @@ namespace AyaGyroAiming
 
             Vector3 input = new Vector3((float)reading.AngularVelocityY, (float)reading.AngularVelocityX, (float)reading.AngularVelocityZ);
             input = SmoothReading(input, GyroStickAlpha);
-            input = NormalizeReading(input, settings.GyroStickMagnitude, settings.GyroStickThreshold);
+            input = NormalizeReading(input, GyroStickMagnitude, GyroStickThreshold, GyroStickAlpha);
 
-            GyroX[poolidx] = Math.Max(-settings.GyroStickRange, Math.Min(settings.GyroStickRange, input.X));
-            GyroY[poolidx] = Math.Max(-settings.GyroStickRange, Math.Min(settings.GyroStickRange, input.Y));
-            GyroZ[poolidx] = Math.Max(-settings.GyroStickRange, Math.Min(settings.GyroStickRange, input.Z));
-            poolidx++;
-            poolidx %= poolsize;
+            gyroPool[gyroPoolIdx] = input;
+            gyroPoolIdx++;
+            gyroPoolIdx %= poolsize;
 
             // scale value
             Vector3 posAverage = new Vector3()
             {
-                X = (float)(settings.GyroStickInvertAxisX ? 1.0f : -1.0f) * (float)GyroX.Average(),
-                Y = (float)(settings.GyroStickInvertAxisY ? 1.0f : -1.0f) * (float)GyroY.Average(),
-                Z = (float)(settings.GyroStickInvertAxisZ ? 1.0f : -1.0f) * (float)GyroZ.Average(),
+                X = (float)(settings.GyroStickInvertAxisX ? 1.0f : -1.0f) * (float)gyroPool.Select(a => a.X).Average(),
+                Y = (float)(settings.GyroStickInvertAxisY ? 1.0f : -1.0f) * (float)gyroPool.Select(a => a.Y).Average(),
+                Z = (float)(settings.GyroStickInvertAxisZ ? 1.0f : -1.0f) * (float)gyroPool.Select(a => a.Z).Average(),
             };
 
             // shall we take screen ratio in consideration here for X value ? X *= 1.7f (16:9)

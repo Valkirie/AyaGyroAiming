@@ -8,12 +8,6 @@
     <Setting Name="GyroMaxSample" Type="System.UInt32" Scope="User">
       <Value Profile="(Default)">1</Value>
     </Setting>
-    <Setting Name="GyroStickMagnitude" Type="System.Single" Scope="User">
-      <Value Profile="(Default)">3.5</Value>
-    </Setting>
-    <Setting Name="GyroStickThreshold" Type="System.Single" Scope="User">
-      <Value Profile="(Default)">0.1</Value>
-    </Setting>
     <Setting Name="GyroStickRange" Type="System.Single" Scope="User">
       <Value Profile="(Default)">9000</Value>
     </Setting>
