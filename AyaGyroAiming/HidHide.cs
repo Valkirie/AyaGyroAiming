@@ -17,7 +17,7 @@ namespace AyaGyroAiming
             path = _path;
         }
 
-        public void RegisterSelf()
+        public void RegisterApplication(string path)
         {
             Process process = new Process
             {
@@ -28,7 +28,7 @@ namespace AyaGyroAiming
                     RedirectStandardError = true,
                     CreateNoWindow = true,
                     FileName = path,
-                    Arguments = $"--app-reg {Assembly.GetExecutingAssembly().Location}"
+                    Arguments = $"--app-reg \"{path}\""
                 }
             };
             process.Start();

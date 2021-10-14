@@ -80,7 +80,8 @@ namespace AyaGyroAiming
 
             // initialize HidHide
             hidder = new HidHide(CurrentPathCli);
-            hidder.RegisterSelf();
+            hidder.RegisterApplication(Assembly.GetExecutingAssembly().Location);
+            hidder.RegisterApplication(@"C:\Program Files (x86)\AYASpace\AYASpace.exe");
 
             // todo : store default baseContainerDeviceInstancePath somewhere
             foreach (Device d in hidder.GetDevices().Where(a => a.gamingDevice))

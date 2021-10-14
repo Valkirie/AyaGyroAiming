@@ -128,7 +128,7 @@ namespace AyaGyroAiming
 
         private void UpdateTrigger()
         {
-            if (settings.TriggerString == null)
+            if (settings.TriggerString == null || settings.TriggerString == "")
             {
                 TriggerPressed = true;
                 return;
