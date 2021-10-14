@@ -60,6 +60,9 @@ namespace AyaGyroAiming
             CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("en-US");
             CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("en-US");
 
+            Console.WriteLine($"AyaGyroAiming ({fileVersionInfo.ProductVersion})");
+            Console.WriteLine();
+
             // paths
             CurrentPath = Directory.GetCurrentDirectory();
             CurrentPathIni = Path.Combine(CurrentPath, "profiles");
@@ -80,10 +83,13 @@ namespace AyaGyroAiming
             hidder.RegisterSelf();
 
             // todo : store default baseContainerDeviceInstancePath somewhere
-            //      : improve the way we get the DeviceID !
             foreach (Device d in hidder.GetDevices().Where(a => a.gamingDevice))
             {
-                string query = $"SELECT * FROM Win32_PnPEntity WHERE Name = \"Xbox 360 Controller for Windows\""; // WHERE ClassGuid = \"{d.baseContainerClassGuid}\"";
+                // deviceInstancePath = "HID\VID_045E&PID_028E&IG_00\8&21ef185b&0&0000"
+                string VID = Between(d.deviceInstancePath, "VID_", "&");
+                string PID = Between(d.deviceInstancePath, "PID_", "&");
+
+                string query = $"SELECT * FROM Win32_PnPEntity WHERE DeviceID LIKE \"%VID_{VID}&PID_{PID}%\"";
 
                 var moSearch = new ManagementObjectSearcher(query);
                 var moCollection = moSearch.Get();
@@ -95,8 +101,9 @@ namespace AyaGyroAiming
                         if (item.Name == "DeviceID")
                         {
                             string DeviceID = ((string)item.Value);
-                            hidder.HideDevice(DeviceID); // USB\VID_045E&PID_028E\6&292C134&0&4
-                            hidder.HideDevice(d.deviceInstancePath); // USB\VID_045E&PID_028E\6&292C134&0&4
+                            hidder.HideDevice(DeviceID);
+                            hidder.HideDevice(d.deviceInstancePath);
+                            Console.WriteLine($"HideDevice hidding {DeviceID}");
                             break;
                         }
                     }
@@ -124,9 +131,6 @@ namespace AyaGyroAiming
                 Console.ReadLine();
                 return;
             }
-
-            Console.WriteLine($"AyaGyroAiming ({fileVersionInfo.ProductVersion})");
-            Console.WriteLine();
 
             CurrentHandler = new ConsoleEventDelegate(ConsoleEventCallback);
             SetConsoleCtrlHandler(CurrentHandler, true);
@@ -184,6 +188,15 @@ namespace AyaGyroAiming
             // listen to user inputs (a bit too rigid, improve me)
             Thread MonitorConsole = new Thread(ConsoleListener);
             MonitorConsole.Start();
+        }
+
+        static string Between(string STR, string FirstString, string LastString)
+        {
+            string FinalString;
+            int Pos1 = STR.IndexOf(FirstString) + FirstString.Length;
+            int Pos2 = STR.IndexOf(LastString, Pos1);
+            FinalString = STR.Substring(Pos1, Pos2 - Pos1);
+            return FinalString;
         }
 
         static void ConsoleListener()

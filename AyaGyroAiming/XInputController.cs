@@ -25,7 +25,6 @@ namespace AyaGyroAiming
         public Vector3 AngularVelocity;
         public Vector3 Acceleration;
 
-        private string TriggerString;
         private bool TriggerPressed;
 
         [Flags]
@@ -127,30 +126,26 @@ namespace AyaGyroAiming
             gyrometer.UpdateSettings(_settings);
         }
 
-        private bool HasKey()
-        {
-            return TriggerString != "";
-        }
-
         private void UpdateTrigger()
         {
-            if (HasKey())
+            if (settings.TriggerString == null)
             {
-                switch (TriggerString)
-                {
-                    case "LeftTrigger":
-                        TriggerPressed = gamepad.LeftTrigger != 0;
-                        return;
-                    case "RightTrigger":
-                        TriggerPressed = gamepad.RightTrigger != 0;
-                        return;
-                    default:
-                        TriggerPressed = false;
-                        return;
-                }
+                TriggerPressed = true;
+                return;
             }
-            TriggerPressed = true;
-            return;
+
+            switch (settings.TriggerString)
+            {
+                case "LeftTrigger":
+                    TriggerPressed = gamepad.LeftTrigger != 0;
+                    return;
+                case "RightTrigger":
+                    TriggerPressed = gamepad.RightTrigger != 0;
+                    return;
+                default:
+                    TriggerPressed = false;
+                    return;
+            }
         }
 
         private void Update()
