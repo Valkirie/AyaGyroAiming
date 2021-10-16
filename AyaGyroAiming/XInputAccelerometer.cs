@@ -22,7 +22,7 @@ namespace AyaGyroAiming
             sensor = Accelerometer.GetDefault();
             if (sensor != null)
             {
-                sensor.ReportInterval = settings.GyroPullRate < sensor.MinimumReportInterval ? sensor.MinimumReportInterval : settings.GyroPullRate;
+                sensor.ReportInterval = settings.PullRate < sensor.MinimumReportInterval ? sensor.MinimumReportInterval : settings.PullRate;
                 Console.WriteLine($"Accelerometer initialised.");
                 Console.WriteLine($"Accelerometer report interval set to {sensor.ReportInterval}ms");
                 Console.WriteLine();

@@ -1,7 +1,7 @@
 {
 	"GyroAiming": true,
 	"Aggressivity": 0.5,
-	"Range": 15000,
+	"Range": 10000,
 	"InvertAxisX": false,
 	"InvertAxisY": false,
 	"InvertAxisZ": false,

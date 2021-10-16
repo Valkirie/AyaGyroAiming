@@ -2,30 +2,6 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="AyaGyroAiming.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="EnableGyroAiming" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="GyroMaxSample" Type="System.UInt32" Scope="User">
-      <Value Profile="(Default)">1</Value>
-    </Setting>
-    <Setting Name="GyroStickRange" Type="System.Single" Scope="User">
-      <Value Profile="(Default)">10000</Value>
-    </Setting>
-    <Setting Name="GyroStickInvertAxisX" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">False</Value>
-    </Setting>
-    <Setting Name="GyroStickInvertAxisY" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">False</Value>
-    </Setting>
-    <Setting Name="GyroStickInvertAxisZ" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">False</Value>
-    </Setting>
-    <Setting Name="GyroPullRate" Type="System.UInt32" Scope="User">
-      <Value Profile="(Default)">10</Value>
-    </Setting>
-    <Setting Name="GyroStickAggressivity" Type="System.Single" Scope="User">
-      <Value Profile="(Default)">0.5</Value>
-    </Setting>
     <Setting Name="UdpPort" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">26760</Value>
     </Setting>
@@ -37,12 +13,6 @@
     </Setting>
     <Setting Name="HidHideDeviceID" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="TriggerString" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="EnableScreenRatio" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
     </Setting>
   </Settings>
 </SettingsFile>

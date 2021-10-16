@@ -1,5 +1,6 @@
 ﻿using Nefarius.ViGEm.Client;
 using Nefarius.ViGEm.Client.Targets;
+using Nefarius.ViGEm.Client.Targets.Xbox360;
 using System;
 using System.Collections.Specialized;
 using System.Configuration;
@@ -38,20 +39,20 @@ namespace AyaGyroAiming
         static IXbox360Controller VirtualXBOX;
         static XInputGirometer Gyrometer;
         static XInputAccelerometer Accelerometer;
+        static UdpServer UDPServer;
 
         private delegate bool ConsoleEventDelegate(int eventType);
         static ConsoleEventDelegate CurrentHandler;
         static int CurrenthWnd;
 
         static bool IsRunning = true;
-        static string CurrentPath, CurrentPathIni, CurrentPathCli;
+        static string CurrentPath, CurrentProfilePath, CurrentPathCli;
         static PhysicalAddress PadMacAddress = new PhysicalAddress(new byte[] { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 });
 
         // settings vars
         static Settings settings = new Settings();
         static int UdpPort;
         static StringCollection HidHideDevices;
-        static bool EnableScreenRatio;
 
         static HidHide hidder;
 
@@ -67,15 +68,11 @@ namespace AyaGyroAiming
 
             // paths
             CurrentPath = Directory.GetCurrentDirectory();
-            CurrentPathIni = Path.Combine(CurrentPath, "profiles");
+            CurrentProfilePath = Path.Combine(CurrentPath, "profiles");
             CurrentPathCli = @"C:\Program Files\Nefarius Software Solutions e.U\HidHideCLI\HidHideCLI.exe";
 
             // settings
             UpdateSettings();
-
-            // resolution settings
-            Rectangle resolution = Screen.PrimaryScreen.Bounds;
-            float ratio = EnableScreenRatio ? ((float)resolution.Width / (float)resolution.Height) : 1.0f;
 
             if (!File.Exists(CurrentPathCli))
             {
@@ -153,7 +150,7 @@ namespace AyaGyroAiming
             }
 
             // default is 10ms rating and 10 samples
-            Gyrometer = new XInputGirometer(settings, ratio);
+            Gyrometer = new XInputGirometer(settings);
             if (Gyrometer.sensor == null)
             {
                 Console.WriteLine("No Gyrometer detected. Application will stop.");
@@ -170,15 +167,15 @@ namespace AyaGyroAiming
                 Environment.Exit(0);
             }
 
-            // start UDP server (temp)
-            UdpServer _udpServer = new UdpServer(PadMacAddress);
-            _udpServer.Start(UdpPort);
+            // start UDP server
+            UDPServer = new UdpServer(PadMacAddress);
+            UDPServer.Start(UdpPort);
 
-            if (_udpServer != null)
+            if (UDPServer != null)
             {
                 Console.WriteLine($"UDP server has started. Listening to port: {UdpPort}");
                 Console.WriteLine();
-                PhysicalController.SetUdpServer(_udpServer);
+                PhysicalController.SetUdpServer(UDPServer);
             }
 
             VirtualXBOX.Connect();
@@ -195,6 +192,10 @@ namespace AyaGyroAiming
             // listen to user inputs (a bit too rigid, improve me)
             Thread MonitorConsole = new Thread(ConsoleListener);
             MonitorConsole.Start();
+
+            // monitor device battery status and notify UDP server
+            Thread MonitorBattery = new Thread(MonitorBatteryLife);
+            MonitorBattery.Start();
         }
 
         static string Between(string STR, string FirstString, string LastString)
@@ -204,6 +205,30 @@ namespace AyaGyroAiming
             int Pos2 = STR.IndexOf(LastString, Pos1);
             FinalString = STR.Substring(Pos1, Pos2 - Pos1);
             return FinalString;
+        }
+
+        static void MonitorBatteryLife()
+        {
+            while (IsRunning)
+            {
+                BatteryChargeStatus ChargeStatus = SystemInformation.PowerStatus.BatteryChargeStatus;
+                // float ChargePercent = SystemInformation.PowerStatus.BatteryLifePercent;
+
+                if (ChargeStatus.HasFlag(BatteryChargeStatus.Charging))
+                    UDPServer.padMeta.BatteryStatus = DsBattery.Charging;
+                else if (ChargeStatus.HasFlag(BatteryChargeStatus.NoSystemBattery))
+                    UDPServer.padMeta.BatteryStatus = DsBattery.None;
+                else if(ChargeStatus.HasFlag(BatteryChargeStatus.High))
+                    UDPServer.padMeta.BatteryStatus = DsBattery.High;
+                else if (ChargeStatus.HasFlag(BatteryChargeStatus.Low))
+                    UDPServer.padMeta.BatteryStatus = DsBattery.Low;
+                else if (ChargeStatus.HasFlag(BatteryChargeStatus.Critical))
+                    UDPServer.padMeta.BatteryStatus = DsBattery.Dying;
+                else
+                    UDPServer.padMeta.BatteryStatus = DsBattery.Medium;
+
+                Thread.Sleep(1000);
+            }
         }
 
         static void ConsoleListener()
@@ -280,22 +305,35 @@ namespace AyaGyroAiming
 
         static void UpdateSettings()
         {
-            settings.EnableGyroAiming = Properties.Settings.Default.EnableGyroAiming;
-            settings.GyroPullRate = Properties.Settings.Default.GyroPullRate;
-            settings.GyroMaxSample = Properties.Settings.Default.GyroMaxSample;
-            settings.GyroStickAggressivity = Properties.Settings.Default.GyroStickAggressivity;
-            settings.GyroStickRange = Properties.Settings.Default.GyroStickRange;
-            settings.GyroStickInvertAxisX = Properties.Settings.Default.GyroStickInvertAxisX;
-            settings.GyroStickInvertAxisY = Properties.Settings.Default.GyroStickInvertAxisY;
-            settings.GyroStickInvertAxisZ = Properties.Settings.Default.GyroStickInvertAxisZ;
-            settings.TriggerString = Properties.Settings.Default.TriggerString;
+            string filename = $"{CurrentProfilePath}\\default.json";
+            if (File.Exists(filename))
+            {
+                string jsonString = File.ReadAllText(filename);
+                settings = JsonSerializer.Deserialize<Settings>(jsonString);
+            }
+            else
+            {
+                Console.WriteLine("Missing default.json profile.");
+                settings = new Settings
+                {
+                    GyroAiming = true,
+                    PullRate = 10,
+                    MaxSample = 1,
+                    Aggressivity = 0.5f,
+                    Range = 10000.0f,
+                    InvertAxisX = false,
+                    InvertAxisY = false,
+                    InvertAxisZ = false,
+                    Trigger = "",
+                    MonitorRatio = false
+                };
+            }
 
             UdpPort = Properties.Settings.Default.UdpPort; // 26760
             HidHideDevices = Properties.Settings.Default.HidHideDevices; // not yet implemented
-            EnableScreenRatio = Properties.Settings.Default.EnableScreenRatio;
 
             // update controller settings
-            if (PhysicalController != null)
+            if (PhysicalController != null && settings != null)
                 PhysicalController.UpdateSettings(settings);
         }
 
@@ -316,7 +354,7 @@ namespace AyaGyroAiming
                         Process CurrentProcess = Process.GetProcessById((int)processId);
 
                         // check if a specific profile exists for the foreground executable
-                        string filename = $"{CurrentPathIni}\\{CurrentProcess.ProcessName}.json";
+                        string filename = $"{CurrentProfilePath}\\{CurrentProcess.ProcessName}.json";
                         if (File.Exists(filename))
                         {
                             string jsonString = File.ReadAllText(filename);

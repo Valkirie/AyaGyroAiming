@@ -48,7 +48,7 @@
     <None Update="profiles\cemu.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="profiles\example.json">
+    <None Update="profiles\default.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="profiles\Kena-Win64-Shipping.json">

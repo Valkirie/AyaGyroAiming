@@ -1,7 +1,9 @@
 ﻿using SharpDX.XInput;
 using System;
+using System.Drawing;
 using System.Linq;
 using System.Numerics;
+using System.Windows.Forms;
 using Windows.Devices.Sensors;
 
 namespace AyaGyroAiming
@@ -38,18 +40,13 @@ namespace AyaGyroAiming
         public event XInputGirometerReadingChangedEventHandler ReadingChanged;
         public delegate void XInputGirometerReadingChangedEventHandler(Object sender, XInputGirometerReadingChangedEventArgs e);
 
-        public XInputGirometer(Settings _settings, float _ratio)
+        public XInputGirometer(Settings _settings)
         {
             sensor = Gyrometer.GetDefault();
             if (sensor != null)
             {
-                settings = _settings;
-                GyroStickRatio = _ratio;
+                UpdateSettings(_settings);
 
-                poolsize = settings.GyroMaxSample;
-                gyroPool = new Vector3[poolsize];
-
-                sensor.ReportInterval = settings.GyroPullRate < sensor.MinimumReportInterval ? sensor.MinimumReportInterval : settings.GyroPullRate;
                 Console.WriteLine($"Gyrometer initialised.");
                 Console.WriteLine($"Gyrometer report interval set to {sensor.ReportInterval}ms");
                 Console.WriteLine($"Gyrometer sample pool size set to: {poolsize}");
@@ -62,6 +59,15 @@ namespace AyaGyroAiming
         public void UpdateSettings(Settings _settings)
         {
             settings = _settings;
+
+            // resolution settings
+            Rectangle resolution = Screen.PrimaryScreen.Bounds;
+            GyroStickRatio = settings.MonitorRatio ? ((float)resolution.Width / (float)resolution.Height) : 1.0f;
+
+            poolsize = settings.MaxSample;
+            gyroPool = new Vector3[poolsize];
+
+            sensor.ReportInterval = settings.PullRate < sensor.MinimumReportInterval ? sensor.MinimumReportInterval : settings.PullRate;
         }
 
         static Vector3 SmoothReading(Vector3 input, float GyroStickAlpha)
@@ -115,17 +121,17 @@ namespace AyaGyroAiming
             // scale value
             Vector3 posAverage = new Vector3()
             {
-                X = (float)(settings.GyroStickInvertAxisX ? 1.0f : -1.0f) * (float)gyroPool.Select(a => a.X).Average(),
-                Y = (float)(settings.GyroStickInvertAxisY ? 1.0f : -1.0f) * (float)gyroPool.Select(a => a.Y).Average(),
-                Z = (float)(settings.GyroStickInvertAxisZ ? 1.0f : -1.0f) * (float)gyroPool.Select(a => a.Z).Average(),
+                X = (float)(settings.InvertAxisX ? 1.0f : -1.0f) * (float)gyroPool.Select(a => a.X).Average(),
+                Y = (float)(settings.InvertAxisY ? 1.0f : -1.0f) * (float)gyroPool.Select(a => a.Y).Average(),
+                Z = (float)(settings.InvertAxisZ ? 1.0f : -1.0f) * (float)gyroPool.Select(a => a.Z).Average(),
             };
 
-            posAverage *= settings.GyroStickRange;
+            posAverage *= settings.Range;
             posAverage.X *= GyroStickRatio; // take screen ratio in consideration 1.7f (16:9)
 
-            posAverage.X = (float)(Math.Sign(posAverage.X) * Math.Pow(Math.Abs(posAverage.X) / Gamepad.RightThumbDeadZone, settings.GyroStickAggressivity) * Gamepad.RightThumbDeadZone);
-            posAverage.Y = (float)(Math.Sign(posAverage.Y) * Math.Pow(Math.Abs(posAverage.Y) / Gamepad.RightThumbDeadZone, settings.GyroStickAggressivity) * Gamepad.RightThumbDeadZone);
-            posAverage.Z = (float)(Math.Sign(posAverage.Z) * Math.Pow(Math.Abs(posAverage.Z) / Gamepad.RightThumbDeadZone, settings.GyroStickAggressivity) * Gamepad.RightThumbDeadZone);
+            posAverage.X = (float)(Math.Sign(posAverage.X) * Math.Pow(Math.Abs(posAverage.X) / Gamepad.RightThumbDeadZone, settings.Aggressivity) * Gamepad.RightThumbDeadZone);
+            posAverage.Y = (float)(Math.Sign(posAverage.Y) * Math.Pow(Math.Abs(posAverage.Y) / Gamepad.RightThumbDeadZone, settings.Aggressivity) * Gamepad.RightThumbDeadZone);
+            posAverage.Z = (float)(Math.Sign(posAverage.Z) * Math.Pow(Math.Abs(posAverage.Z) / Gamepad.RightThumbDeadZone, settings.Aggressivity) * Gamepad.RightThumbDeadZone);
 
             // raise event
             XInputGirometerReadingChangedEventArgs newargs = new XInputGirometerReadingChangedEventArgs()
