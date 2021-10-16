@@ -1,12 +1,13 @@
 {
 	"GyroAiming": true,
 	"Aggressivity": 0.5,
-	"Range": 10000,
+	"RangeAxisX": 1.0,
+	"RangeAxisY": 1.0,
+	"RangeAxisZ": 1.0,
 	"InvertAxisX": false,
 	"InvertAxisY": false,
 	"InvertAxisZ": false,
 	"Trigger": "",
 	"PullRate": 10,
-	"MaxSample": 1,
-	"MonitorRatio": false
+	"MaxSample": 1
 }

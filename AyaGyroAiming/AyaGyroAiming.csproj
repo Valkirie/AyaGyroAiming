@@ -4,9 +4,11 @@
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net461</TargetFrameworks>
 	<TargetPlatformVersion>8.0</TargetPlatformVersion>
-	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-	<Version>0.18</Version>
+	<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+	<Version>0.19</Version>
 	<NoWin32Manifest>true</NoWin32Manifest>
+	<PackageProjectUrl>https://github.com/Valkirie/AyaGyroAiming</PackageProjectUrl>
+	<RepositoryUrl>https://github.com/Valkirie/AyaGyroAiming</RepositoryUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net461|AnyCPU'">

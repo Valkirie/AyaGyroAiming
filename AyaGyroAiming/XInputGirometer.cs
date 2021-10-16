@@ -1,9 +1,7 @@
 ﻿using SharpDX.XInput;
 using System;
-using System.Drawing;
 using System.Linq;
 using System.Numerics;
-using System.Windows.Forms;
 using Windows.Devices.Sensors;
 
 namespace AyaGyroAiming
@@ -32,7 +30,7 @@ namespace AyaGyroAiming
         float GyroStickAlpha = 0.2f;
         float GyroStickMagnitude = 3.5f;
         float GyroStickThreshold = 0.1f;
-        float GyroStickRatio = 1.7f;
+        float GyroStickRange = 10000.0f;
 
         // Settings
         Settings settings;
@@ -59,10 +57,6 @@ namespace AyaGyroAiming
         public void UpdateSettings(Settings _settings)
         {
             settings = _settings;
-
-            // resolution settings
-            Rectangle resolution = Screen.PrimaryScreen.Bounds;
-            GyroStickRatio = settings.MonitorRatio ? ((float)resolution.Width / (float)resolution.Height) : 1.0f;
 
             poolsize = settings.MaxSample;
             gyroPool = new Vector3[poolsize];
@@ -126,8 +120,10 @@ namespace AyaGyroAiming
                 Z = (float)(settings.InvertAxisZ ? 1.0f : -1.0f) * (float)gyroPool.Select(a => a.Z).Average(),
             };
 
-            posAverage *= settings.Range;
-            posAverage.X *= GyroStickRatio; // take screen ratio in consideration 1.7f (16:9)
+            posAverage *= GyroStickRange;
+            posAverage.X *= settings.RangeAxisX;
+            posAverage.Y *= settings.RangeAxisY;
+            posAverage.Z *= settings.RangeAxisZ;
 
             posAverage.X = (float)(Math.Sign(posAverage.X) * Math.Pow(Math.Abs(posAverage.X) / Gamepad.RightThumbDeadZone, settings.Aggressivity) * Gamepad.RightThumbDeadZone);
             posAverage.Y = (float)(Math.Sign(posAverage.Y) * Math.Pow(Math.Abs(posAverage.Y) / Gamepad.RightThumbDeadZone, settings.Aggressivity) * Gamepad.RightThumbDeadZone);

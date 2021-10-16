@@ -1,11 +1,9 @@
 ﻿using Nefarius.ViGEm.Client;
 using Nefarius.ViGEm.Client.Targets;
-using Nefarius.ViGEm.Client.Targets.Xbox360;
 using System;
 using System.Collections.Specialized;
 using System.Configuration;
 using System.Diagnostics;
-using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -218,7 +216,7 @@ namespace AyaGyroAiming
                     UDPServer.padMeta.BatteryStatus = DsBattery.Charging;
                 else if (ChargeStatus.HasFlag(BatteryChargeStatus.NoSystemBattery))
                     UDPServer.padMeta.BatteryStatus = DsBattery.None;
-                else if(ChargeStatus.HasFlag(BatteryChargeStatus.High))
+                else if (ChargeStatus.HasFlag(BatteryChargeStatus.High))
                     UDPServer.padMeta.BatteryStatus = DsBattery.High;
                 else if (ChargeStatus.HasFlag(BatteryChargeStatus.Low))
                     UDPServer.padMeta.BatteryStatus = DsBattery.Low;
@@ -320,12 +318,13 @@ namespace AyaGyroAiming
                     PullRate = 10,
                     MaxSample = 1,
                     Aggressivity = 0.5f,
-                    Range = 10000.0f,
+                    RangeAxisX = 1.0f,
+                    RangeAxisY = 1.0f,
+                    RangeAxisZ = 1.0f,
                     InvertAxisX = false,
                     InvertAxisY = false,
                     InvertAxisZ = false,
-                    Trigger = "",
-                    MonitorRatio = false
+                    Trigger = ""
                 };
             }
 
