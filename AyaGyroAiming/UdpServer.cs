@@ -80,7 +80,7 @@ namespace AyaGyroAiming
         private const int ARG_BUFFER_LEN = 80;
 
         public DualShockPadMeta padMeta;
-        private Stopwatch sw;
+        public Stopwatch sw;
         private PhysicalAddress PadMacAddress;
         private int udpPacketCount = 0;
 
@@ -389,7 +389,7 @@ namespace AyaGyroAiming
                     }
                 }
             }
-            catch (Exception e) { Console.WriteLine(e.Message); }
+            catch (Exception) {}
         }
 
         private void ReceiveCallback(IAsyncResult iar)
@@ -536,11 +536,11 @@ namespace AyaGyroAiming
                 //gyroscope
                 if (hidReport.AngularVelocity != null)
                 {
-                    Array.Copy(BitConverter.GetBytes((float)hidReport.AngularVelocity.X), 0, outputData, outIdx, 4);
+                    Array.Copy(BitConverter.GetBytes(hidReport.AngularVelocity.X), 0, outputData, outIdx, 4);
                     outIdx += 4;
-                    Array.Copy(BitConverter.GetBytes((float)hidReport.AngularVelocity.Z), 0, outputData, outIdx, 4);
+                    Array.Copy(BitConverter.GetBytes(hidReport.AngularVelocity.Z), 0, outputData, outIdx, 4);
                     outIdx += 4;
-                    Array.Copy(BitConverter.GetBytes(-(float)hidReport.AngularVelocity.Y), 0, outputData, outIdx, 4);
+                    Array.Copy(BitConverter.GetBytes(-hidReport.AngularVelocity.Y), 0, outputData, outIdx, 4);
                     outIdx += 4;
                 }
                 else

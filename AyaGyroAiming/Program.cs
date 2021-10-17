@@ -34,7 +34,7 @@ namespace AyaGyroAiming
 
         // controllers vars
         static XInputController PhysicalController;
-        static IXbox360Controller VirtualXBOX;
+        static IVirtualGamepad VirtualController;
         static XInputGirometer Gyrometer;
         static XInputAccelerometer Accelerometer;
         static UdpServer UDPServer;
@@ -118,9 +118,10 @@ namespace AyaGyroAiming
             try
             {
                 ViGEmClient client = new ViGEmClient();
-                VirtualXBOX = client.CreateXbox360Controller();
+                //VirtualController = client.CreateXbox360Controller();
+                VirtualController = client.CreateDualShock4Controller();
 
-                if (VirtualXBOX == null)
+                if (VirtualController == null)
                 {
                     Console.WriteLine("No Virtual controller detected. Application will stop.");
                     Console.ReadLine();
@@ -176,12 +177,17 @@ namespace AyaGyroAiming
                 PhysicalController.SetUdpServer(UDPServer);
             }
 
-            VirtualXBOX.Connect();
-            Console.WriteLine($"Virtual {VirtualXBOX.GetType().Name} initialised.");
-            PhysicalController.SetVirtualController(VirtualXBOX);
+            VirtualController.Connect();
+            Console.WriteLine($"Virtual {VirtualController.GetType().Name} initialised.");
+
+            if (VirtualController.GetType().Name == "Xbox360Controller")
+                PhysicalController.SetVirtualController((IXbox360Controller)VirtualController);
+            else
+                PhysicalController.SetVirtualController((IDualShock4Controller)VirtualController);
+
             PhysicalController.SetGyroscope(Gyrometer);
             PhysicalController.SetAccelerometer(Accelerometer);
-            Console.WriteLine($"Virtual {VirtualXBOX.GetType().Name} attached to {PhysicalController.GetType().Name} {PhysicalController.index}.");
+            Console.WriteLine($"Virtual {VirtualController.GetType().Name} attached to {PhysicalController.GetType().Name} {PhysicalController.index}.");
 
             // monitor processes and apply specific profile
             Thread MonitorThread = new Thread(MonitorProcess);
@@ -379,8 +385,8 @@ namespace AyaGyroAiming
         {
             try
             {
-                if (VirtualXBOX != null)
-                    VirtualXBOX.Disconnect();
+                if (VirtualController != null)
+                    VirtualController.Disconnect();
             }
             catch (Exception) { }
 
