@@ -87,9 +87,8 @@ namespace AyaGyroAiming
             // todo : store default baseContainerDeviceInstancePath somewhere
             foreach (Device d in hidder.GetDevices().Where(a => a.gamingDevice))
             {
-                // deviceInstancePath = "HID\VID_045E&PID_028E&IG_00\8&21ef185b&0&0000"
-                string VID = Between(d.deviceInstancePath, "VID_", "&");
-                string PID = Between(d.deviceInstancePath, "PID_", "&");
+                string VID = Utils.Between(d.deviceInstancePath.ToLower(), "vid_", "&");
+                string PID = Utils.Between(d.deviceInstancePath.ToLower(), "pid_", "&");
 
                 string query = $"SELECT * FROM Win32_PnPEntity WHERE DeviceID LIKE \"%VID_{VID}&PID_{PID}%\"";
 

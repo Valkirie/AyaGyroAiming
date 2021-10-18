@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -7,6 +8,7 @@ namespace AyaGyroAiming
     class HidHide
     {
         private Process process;
+        RootDevice root;
 
         public HidHide(string _path)
         {
@@ -18,7 +20,8 @@ namespace AyaGyroAiming
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    FileName = _path
+                    FileName = _path,
+                    Verb = "runas"
                 }
             };
         }
@@ -42,11 +45,22 @@ namespace AyaGyroAiming
             if (jsonString == "")
                 return new List<Device>();
 
-            jsonString = jsonString.Replace("\"friendlyName\" : ", "\"friendlyName\" : \"");
-            jsonString = jsonString.Replace("[ {", "{");
-            jsonString = jsonString.Replace(" } ] } ] ", " } ] }");
-            jsonString = jsonString.Replace(@"\", @"\\");
-            RootDevice root = JsonSerializer.Deserialize<RootDevice>(jsonString);
+            try
+            {
+                jsonString = jsonString.Replace("\"friendlyName\" : ", "\"friendlyName\" : \"");
+                jsonString = jsonString.Replace("[ {", "{");
+                jsonString = jsonString.Replace(" } ] } ] ", " } ] }");
+                jsonString = jsonString.Replace(@"\", @"\\");
+                root = JsonSerializer.Deserialize<RootDevice>(jsonString);
+            }
+            catch(Exception)
+            {
+                string tempString = Utils.Between(jsonString, "symbolicLink", ",");
+                Console.WriteLine($"symbolicLink:{tempString}");
+                root = new RootDevice();
+                root.friendlyName = "Unknown";
+                root.devices = new List<Device>() { new Device() { gamingDevice = true, deviceInstancePath = tempString } };
+            }
 
             return root.devices;
         }
