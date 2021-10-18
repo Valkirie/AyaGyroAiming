@@ -65,7 +65,7 @@ namespace AyaGyroAiming
             Console.WriteLine();
 
             // paths
-            CurrentPath = Directory.GetCurrentDirectory();
+            CurrentPath = AppDomain.CurrentDomain.BaseDirectory;
             CurrentProfilePath = Path.Combine(CurrentPath, "profiles");
             CurrentPathCli = @"C:\Program Files\Nefarius Software Solutions e.U\HidHideCLI\HidHideCLI.exe";
 
