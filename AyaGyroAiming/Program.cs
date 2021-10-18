@@ -70,7 +70,8 @@ namespace AyaGyroAiming
             CurrentPathCli = @"C:\Program Files\Nefarius Software Solutions e.U\HidHideCLI\HidHideCLI.exe";
 
             // settings
-            UpdateSettings();
+            string filename = Path.Combine(CurrentProfilePath, Path.GetFileName("default.json"));
+            UpdateSettings(filename);
 
             if (!File.Exists(CurrentPathCli))
             {
@@ -117,8 +118,8 @@ namespace AyaGyroAiming
             try
             {
                 ViGEmClient client = new ViGEmClient();
-                //VirtualController = client.CreateXbox360Controller();
-                VirtualController = client.CreateDualShock4Controller();
+                VirtualController = client.CreateXbox360Controller();
+                //VirtualController = client.CreateDualShock4Controller();
 
                 if (VirtualController == null)
                 {
@@ -201,15 +202,6 @@ namespace AyaGyroAiming
             MonitorBattery.Start();
         }
 
-        static string Between(string STR, string FirstString, string LastString)
-        {
-            string FinalString;
-            int Pos1 = STR.IndexOf(FirstString) + FirstString.Length;
-            int Pos2 = STR.IndexOf(LastString, Pos1);
-            FinalString = STR.Substring(Pos1, Pos2 - Pos1);
-            return FinalString;
-        }
-
         static void MonitorBatteryLife()
         {
             while (IsRunning)
@@ -278,7 +270,7 @@ namespace AyaGyroAiming
                             }
                             Console.WriteLine($"{variable} set to: {array[2]}");
                             Properties.Settings.Default.Save();
-                            UpdateSettings();
+                            UpdateSettings("");
                             break;
                         case "/get":
                             if (array.Length < 2)
@@ -306,31 +298,38 @@ namespace AyaGyroAiming
             }
         }
 
-        static void UpdateSettings()
+        // I don't like this function... improve me !
+        static void UpdateSettings(string filename)
         {
-            string filename = $"{CurrentProfilePath}\\default.json";
-            if (File.Exists(filename))
+            if (filename != "")
             {
-                string jsonString = File.ReadAllText(filename);
-                settings = JsonSerializer.Deserialize<Settings>(jsonString);
-            }
-            else
-            {
-                Console.WriteLine("Missing default.json profile.");
-                settings = new Settings
+                FileInfo info = new FileInfo(filename);
+                Debug.WriteLine($"Seeking {info.Name} profile.");
+
+                if (File.Exists(filename))
                 {
-                    GyroAiming = true,
-                    PullRate = 10,
-                    MaxSample = 1,
-                    Aggressivity = 0.5f,
-                    RangeAxisX = 1.0f,
-                    RangeAxisY = 1.0f,
-                    RangeAxisZ = 1.0f,
-                    InvertAxisX = false,
-                    InvertAxisY = false,
-                    InvertAxisZ = false,
-                    Trigger = ""
-                };
+                    string jsonString = File.ReadAllText(filename);
+                    settings = JsonSerializer.Deserialize<Settings>(jsonString);
+                    Debug.WriteLine($"Applied {info.Name} profile.");
+                }
+                else
+                {
+                    // dirty
+                    settings = new Settings
+                    {
+                        GyroAiming = true,
+                        PullRate = 10,
+                        MaxSample = 1,
+                        Aggressivity = 0.5f,
+                        RangeAxisX = 1.0f,
+                        RangeAxisY = 1.0f,
+                        RangeAxisZ = 1.0f,
+                        InvertAxisX = false,
+                        InvertAxisY = false,
+                        InvertAxisZ = false,
+                        Trigger = ""
+                    };
+                }
             }
 
             UdpPort = Properties.Settings.Default.UdpPort; // 26760
@@ -358,18 +357,8 @@ namespace AyaGyroAiming
                         Process CurrentProcess = Process.GetProcessById((int)processId);
 
                         // check if a specific profile exists for the foreground executable
-                        string filename = $"{CurrentProfilePath}\\{CurrentProcess.ProcessName}.json";
-                        if (File.Exists(filename))
-                        {
-                            string jsonString = File.ReadAllText(filename);
-                            Settings settings = JsonSerializer.Deserialize<Settings>(jsonString);
-
-                            // update controller settings
-                            PhysicalController.UpdateSettings(settings);
-                            Console.WriteLine($"Gyroscope settings applied for {CurrentProcess.ProcessName}");
-                        }
-                        else
-                            UpdateSettings();
+                        string filename = Path.Combine(CurrentProfilePath, Path.GetFileName($"{CurrentProcess.ProcessName}.json"));
+                        UpdateSettings(filename);
                     }
                     catch (Exception) { }
 
