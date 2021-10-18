@@ -71,7 +71,7 @@ namespace AyaGyroAiming
         public const int NUMBER_SLOTS = 4;
         private Socket udpSock;
         private uint serverId;
-        private bool running;
+        public bool running;
         private byte[] recvBuffer = new byte[1024];
         private SocketAsyncEventArgs[] argsList;
         private int listInd = 0;
@@ -80,7 +80,6 @@ namespace AyaGyroAiming
         private const int ARG_BUFFER_LEN = 80;
 
         public DualShockPadMeta padMeta;
-        public Stopwatch sw;
         private PhysicalAddress PadMacAddress;
         private int udpPacketCount = 0;
 
@@ -108,9 +107,6 @@ namespace AyaGyroAiming
                 Model = DsModel.DS4,
                 PadState = DsState.Connected
             };
-
-            sw = new Stopwatch();
-            sw.Start();
 
             _pool = new SemaphoreSlim(ARG_BUFFER_LEN);
             argsList = new SocketAsyncEventArgs[ARG_BUFFER_LEN];
@@ -471,14 +467,13 @@ namespace AyaGyroAiming
             }
         }
 
-        private bool ReportToBuffer(XInputController hidReport, byte[] outputData, ref int outIdx)
+        private bool ReportToBuffer(XInputController hidReport, byte[] outputData, long microseconds, ref int outIdx)
         {
             unchecked
             {
                 outIdx = 68;
 
                 //motion timestamp
-                long microseconds = sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
                 Array.Copy(BitConverter.GetBytes((ulong)microseconds), 0, outputData, outIdx, 8);
 
                 outIdx += 8;
@@ -519,7 +514,7 @@ namespace AyaGyroAiming
             return true;
         }
 
-        public void NewReportIncoming(XInputController hidReport)
+        public void NewReportIncoming(XInputController hidReport, long microseconds)
         {
             if (!running)
                 return;
@@ -610,7 +605,7 @@ namespace AyaGyroAiming
                 Array.Copy(BitConverter.GetBytes((uint)udpPacketCount++), 0, outputData, outIdx, 4);
                 outIdx += 4;
 
-                if (!ReportToBuffer(hidReport, outputData, ref outIdx))
+                if (!ReportToBuffer(hidReport, outputData, microseconds, ref outIdx))
                     return;
                 else
                     FinishPacket(outputData);
